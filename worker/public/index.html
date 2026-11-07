@@ -328,6 +328,7 @@
         <div class="dog-sub" id="dogSub"></div>
       </div>
       <div class="header-actions">
+        <button class="hbtn" title="Написать разработчику" onclick="ui.openReport()">✉</button>
         <button class="hbtn" title="Про течку" onclick="ui.openGuide()">?</button>
         <button class="hbtn" title="Уведомления" onclick="ui.openNotify()">🔔</button>
         <button class="hbtn" title="Добавить собаку" onclick="ui.openAddDog(true)">＋</button>
@@ -1548,6 +1549,68 @@ function vetSummaryText() {
   return lines.join("\n");
 }
 
+// ===== поддержка: жалоба разработчику + авто-репорты ошибок =====
+// версия клиента в каждом репорте — чтобы отличать баги старого кэша от текущих
+const APP_VER = "2026-11-08a";
+
+function openReport() {
+  openSheet(`
+  <h2>Написать разработчику</h2>
+  <div class="muted" style="margin:-8px 0 12px">что-то не работает или есть идея? опишите — ответ придёт сюда в чат</div>
+  <textarea class="note-field" id="repText" rows="4" maxlength="2000" placeholder="например: закрыла течку, а в календаре всё равно красный день"></textarea>
+  <div class="act-row" style="margin-top:14px">
+    <button class="act-btn ghost" onclick="ui.closeSheet()">Отмена</button>
+    <button class="act-btn primary" id="repSend">Отправить</button>
+  </div>`);
+  document.getElementById("repSend").onclick = function () {
+    const text = document.getElementById("repText").value.trim();
+    if (!text) { toast("Напишите пару слов о проблеме"); return; }
+    if (this.disabled) return;
+    once(this, async () => {
+      const r = await api.call("/api/reports", "POST", {
+        kind: "manual", text, page: state.tab, bundle_ver: APP_VER, dog_id: state.dogId,
+      }).catch(e => ({ ok: false, error: e.message }));
+      if (r.ok) { closeSheet(); toast("Отправлено — ответ придёт в чат"); }
+      else if (r.error === "too many reports") toast("Слишком много сообщений — попробуйте позже");
+      else toast("Не получилось отправить, попробуйте позже");
+    });
+  };
+}
+
+// авто-репорты ошибок: молча для пользователя, дедуп по fingerprint на сервере
+// и sessionStorage-флаг (зацикленная ошибка не долбит сеть). Никаких данных
+// приложения (заметки/симптомы/имена) — только сообщение, стек, экран, версия.
+const errSent = new Set();
+function reportClientError(kind, message, stack) {
+  try {
+    const firstLine = String(message).split("\n")[0].slice(0, 160);
+    if (errSent.has(firstLine)) return; // максимум одна отправка на ошибку за сессию
+    errSent.add(firstLine);
+    const body = JSON.stringify({
+      kind: "error",
+      text: `${String(message).slice(0, 400)}\n${String(stack ?? "").slice(0, 2600)}`,
+      page: state.tab, bundle_ver: APP_VER,
+    });
+    // fetch с заголовком initData (sendBeacon заголовки не несёт → 401);
+    // keepalive — запрос переживёт закрытие вебвю. Вне Telegram initData нет — репорт
+    // уйдёт в 401 и тихо пропадёт: без авторизации принимать его нельзя.
+    if (!tg?.initData) return;
+    fetch("/api/reports", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-tg-init-data": tg.initData },
+      body, keepalive: true,
+    }).catch(() => {});
+  } catch { /* репорт ошибки не должен сам валиться */ }
+}
+window.addEventListener("error", ev => {
+  reportClientError("onerror", ev.message || "unknown", ev.error?.stack);
+});
+window.addEventListener("unhandledrejection", ev => {
+  const r = ev.reason;
+  reportClientError("unhandledrejection",
+    r instanceof Error ? r.message : String(r), r instanceof Error ? r.stack : "");
+});
+
 function openVetSummary() {
   const text = vetSummaryText();
   openSheet(`
@@ -1582,7 +1645,7 @@ document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () =>
 }));
 
 // экспорт для inline-onclick
-window.ui = { openAddDog, openEditDog, openBackfill, addBfRow, startHeat, endHeat, cancelHeat, openNotify, openGuide, closeSheet, openVetSummary };
+window.ui = { openAddDog, openEditDog, openBackfill, addBfRow, startHeat, endHeat, cancelHeat, openNotify, openGuide, closeSheet, openVetSummary, openReport };
 
 loadAll().catch(e => {
   if (state.authFailed || !inTelegram) {

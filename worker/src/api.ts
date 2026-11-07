@@ -3,6 +3,7 @@ import { verifyInitData, type TgUser } from "./auth.ts";
 import { computeCycleStatus } from "./cycle.ts";
 import { dayMsk } from "./notify.ts";
 import { resolveBreedProfile } from "./breeds.ts";
+import { submitManualReport, submitErrorReport } from "./support.ts";
 import type { Env } from "./types";
 
 interface Row { notify_settings: string | null }
@@ -40,6 +41,27 @@ export async function handleApi(req: Request, env: Env, path: string): Promise<R
     if ("checkin_reminder" in n) clean.checkin_reminder = !!n.checkin_reminder;
     await env.DB.prepare("UPDATE users SET notify_settings = ? WHERE id = ?").bind(JSON.stringify(clean), user.id).run();
     return json({ ok: true, notify: clean });
+  }
+
+  // --- поддержка: жалоба (manual) или авто-репорт ошибки (error) ---
+  if (path === "/api/reports" && req.method === "POST") {
+    const body = await req.json().catch(() => null) as {
+      kind?: string; text?: string; page?: string; bundle_ver?: string; dog_id?: number;
+    } | null;
+    const kind = body?.kind === "error" ? "error" : "manual";
+    if (kind === "error") {
+      await submitErrorReport(env, "error", { id: user.id, username: user.username },
+        String(body?.text ?? ""), body?.page ?? null, body?.bundle_ver ?? null);
+      return json({ ok: true });
+    }
+    const r = await submitManualReport(env, { id: user.id, username: user.username }, {
+      text: String(body?.text ?? ""),
+      page: body?.page ?? null,
+      bundle_ver: body?.bundle_ver ?? null,
+      dog_id: typeof body?.dog_id === "number" ? body.dog_id : null,
+    });
+    if (!r.ok) return json({ ok: false, error: r.error }, r.status);
+    return json({ ok: true });
   }
 
   // --- собаки ---

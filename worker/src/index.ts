@@ -3,6 +3,7 @@
 import { botHandler, bootstrap } from "./bot";
 import { handleApi } from "./api";
 import { runDailyNotifications } from "./notify";
+import { recordServerError } from "./support";
 import type { Env, ScheduledEvent, ExecutionContext } from "./types";
 
 export default {
@@ -42,7 +43,13 @@ export default {
 
     // API мини-аппа: /api/...
     if (path.startsWith("/api/")) {
-      return handleApi(req, env, path);
+      try {
+        return await handleApi(req, env, path);
+      } catch (e) {
+        // необработанный сбой API → авто-репорт поддержки (fire-and-forget) + честный 500
+        recordServerError(env, `api ${req.method} ${path}`, e);
+        return Response.json({ ok: false, error: "internal" }, { status: 500 });
+      }
     }
 
     return new Response("not found", { status: 404 });

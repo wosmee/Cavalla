@@ -2,9 +2,11 @@
 import { Bot } from "grammy";
 import type { Env } from "./types";
 import { POLZ_PAGE_SIZE, formatPolzLine, polzPageInfo, polzText, type PolzRow } from "./polz.ts";
-
-// Владелец (Илья). /polz доступен только ему.
-const OWNER_ID = 673947355;
+import {
+  OWNER_ID, REPORTS_PAGE_SIZE, reportsPageInfo, reportsPageText, formatReportLine,
+  formatReportCard, reportKeyboard, loadReport, findReportByOwnerMsg, findRepliedReportFor,
+  forwardUserFollowup, deliverReply, getFlag, setFlag, recordServerError, type ReportRow,
+} from "./support.ts";
 
 // Страница списка пользователей: строки + inline-клавиатура «‹ ›».
 async function renderPolzPage(env: Env, page: number) {
@@ -30,6 +32,35 @@ async function renderPolzPage(env: Env, page: number) {
     ]],
   };
   return { text, reply_markup: keyboard.inline_keyboard[0].length ? keyboard : undefined };
+}
+
+// Страница очереди /reports: открытые жалобы (new/replied), от новых к старым.
+async function renderReportsPage(env: Env, page: number) {
+  const totalRes = await env.DB
+    .prepare("SELECT COUNT(*) AS n FROM reports WHERE status IN ('new', 'replied')")
+    .first<{ n: number }>();
+  const total = Number(totalRes?.n ?? 0);
+  const info = reportsPageInfo(total, page);
+  const { results } = await env.DB.prepare(
+    `SELECT * FROM reports WHERE status IN ('new', 'replied')
+      ORDER BY id DESC LIMIT ? OFFSET ?`
+  ).bind(REPORTS_PAGE_SIZE, info.offset).all<ReportRow>();
+  const lines = results.map(formatReportLine);
+  const text = reportsPageText(lines, info.page, info.pages, total);
+  const keyboard = {
+    inline_keyboard: [
+      // кнопки-ссылки на карточки — по тапу бот пришлёт полную карточку с «Ответить/Решено»
+      ...(results.length ? [results.slice(0, REPORTS_PAGE_SIZE).map(r => ({
+        text: `${r.kind === "manual" ? "📮" : "🐛"} #${r.id}`,
+        callback_data: `rep:open:${r.id}`,
+      }))] : []),
+      ...(info.pages > 1 ? [[
+        ...(info.page > 0 ? [{ text: "‹ Назад", callback_data: `reps:${info.page - 1}` }] : []),
+        ...(info.page < info.pages - 1 ? [{ text: "Вперёд ›", callback_data: `reps:${info.page + 1}` }] : []),
+      ]] : []),
+    ],
+  };
+  return { text, reply_markup: keyboard.inline_keyboard.length ? keyboard : undefined };
 }
 
 export async function bootstrap(env: Env, origin: string): Promise<Response> {
@@ -77,10 +108,12 @@ export async function botHandler(req: Request, env: Env): Promise<Response> {
     } catch (e) {
       // ошибка доставки к несуществующему chat (фейковые пробы) — не роняем вебхук (§56)
       console.error("handleUpdate:", String(e));
+      recordServerError(env, "webhook handleUpdate", e);
     }
     return Response.json({ ok: true, handled: true });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.stack ?? e.message : String(e);
+    recordServerError(env, "webhook outer", e);
     return Response.json({ ok: false, debug_error: String(msg).slice(0, 600) }, { status: 500 });
   }
 }
@@ -129,6 +162,89 @@ function createBot(env: Env): Bot {
     } catch { /* текст/клавиатура не изменились — игнорируем */ }
     await ctx.answerCallbackQuery();
   });
+
+  // ---- поддержка: очередь жалоб (только владелец) ----
+  bot.command("reports", async (ctx) => {
+    if (ctx.from?.id !== OWNER_ID) return;
+    const page = await renderReportsPage(env, 0);
+    await ctx.reply(page.text, page.reply_markup ? { reply_markup: page.reply_markup } : undefined);
+  });
+  bot.callbackQuery(/^reps:(\d+)$/, async (ctx) => {
+    if (ctx.from?.id !== OWNER_ID) return;
+    const page = await renderReportsPage(env, Number(ctx.match[1]));
+    try {
+      await ctx.editMessageText(page.text, page.reply_markup ? { reply_markup: page.reply_markup } : undefined);
+    } catch { /* не изменилось */ }
+    await ctx.answerCallbackQuery();
+  });
+
+  // карточка жалобы отдельным сообщением (из очереди или чтобы вернуть клавиатуру)
+  bot.callbackQuery(/^rep:open:(\d+)$/, async (ctx) => {
+    if (ctx.from?.id !== OWNER_ID) return;
+    const r = await loadReport(env, Number(ctx.match[1]));
+    await ctx.answerCallbackQuery();
+    if (!r) return;
+    await ctx.reply(formatReportCard(r), { reply_markup: reportKeyboard(r) });
+  });
+
+  // «Ответить»: включаем режим — следующее текстовое сообщение владельца уходит пользователю
+  bot.callbackQuery(/^rep:reply:(\d+)$/, async (ctx) => {
+    if (ctx.from?.id !== OWNER_ID) return;
+    const r = await loadReport(env, Number(ctx.match[1]));
+    if (!r) { await ctx.answerCallbackQuery({ text: "Жалоба не найдена", show_alert: true }); return; }
+    // флаг с меткой времени: режим живёт 10 минут, чтобы не перехватить случайное сообщение
+    await setFlag(env, `reply_to:${OWNER_ID}`, `${r.id}|${Date.now()}`);
+    await ctx.answerCallbackQuery({
+      text: `Отправьте текст для ${r.username ? "@" + r.username : "пользователя " + r.tg_user_id} следующим сообщением`,
+    });
+  });
+
+  // «Решено» / «Закрыть»: статус resolved, карточка обновляется на месте
+  bot.callbackQuery(/^rep:done:(\d+)$/, async (ctx) => {
+    if (ctx.from?.id !== OWNER_ID) return;
+    const id = Number(ctx.match[1]);
+    const now = new Date().toISOString();
+    await env.DB.prepare("UPDATE reports SET status = 'resolved', updated_at = ? WHERE id = ?").bind(now, id).run();
+    const r = await loadReport(env, id);
+    if (r) {
+      try { await ctx.editMessageText(formatReportCard(r)); } catch { /* не изменилось */ }
+    }
+    await ctx.answerCallbackQuery({ text: "Закрыто" });
+  });
+
+  // текстовые сообщения: режим «Ответить» и reply-тред владельца; followup'ы пользователей.
+  // Регистрируется ПОСЛЕ bot.command — команды (/start, /polz, /reports) сюда не доходят.
+  bot.on("message:text", async (ctx) => {
+    const from = ctx.from;
+    if (!from) return;
+    const text = ctx.message.text;
+
+    if (from.id === OWNER_ID) {
+      // 1) reply на карточку жалобы → ответ её автору
+      const repliedTo = ctx.message.reply_to_message?.message_id;
+      let target: ReportRow | null = null;
+      if (repliedTo) target = await findReportByOwnerMsg(env, repliedTo);
+      // 2) режим «Ответить» (флаг из rep:reply)
+      if (!target) {
+        const flag = await getFlag(env, `reply_to:${OWNER_ID}`);
+        if (flag) {
+          const [idStr, tsStr] = flag.split("|");
+          await setFlag(env, `reply_to:${OWNER_ID}`, null); // одноразовый режим
+          if (Date.now() - Number(tsStr) < 10 * 60_000) target = await loadReport(env, Number(idStr));
+        }
+      }
+      if (target) {
+        const err = await deliverReply(env, target, text);
+        await ctx.reply(err ? `✗ Не доставлено: ${err}` : `✓ Отправлено ${target.username ? "@" + target.username : target.tg_user_id} (жалоба #${target.id})`);
+      }
+      return;
+    }
+
+    // пользователь пишет боту после ответа разработчика → продолжаем тред у владельца
+    const r = await findRepliedReportFor(env, from.id);
+    if (r) await forwardUserFollowup(env, r, text);
+  });
+
   cached = bot;
   return bot;
 }
