@@ -49,11 +49,13 @@ const kv = {
 
 const env = { DB: makeDb(db), KV: kv, BOT_TOKEN: "x", WEBHOOK_SECRET: "s" };
 import { cycleStatus, bumpCycleVersion } from "../src/api.ts";
-// собака + открытая течка + чекин; даты относительные — day течки не должен зависеть от дня прогона
+import { dayMsk } from "../src/notify.ts";
+// собака + открытая течка + чекин; даты относительные — day течки не должен зависеть от дня прогона.
+// Важно: код считает «сегодня» в МСК (dayMsk), а не по UTC-срезу — иначе тест красный в 00:00–02:59 мск.
 const iso = (d) => d.toISOString().slice(0, 10);
-const today = new Date();
-const heatStart = iso(new Date(today.getTime() - 8 * 86400000)); // day 9 на сегодня
-const checkinDay = iso(today);
+const now = new Date();
+const checkinDay = dayMsk(now);
+const heatStart = dayMsk(new Date(now.getTime() - 8 * 86400000)); // day 9 на сегодня
 env.DB.prepare("INSERT INTO users (id, username, first_seen_at, last_seen_at) VALUES (1, 'u', '2026-01-01', '2026-01-01')").run();
 env.DB.prepare("INSERT INTO dogs (owner_id, name, breed, created_at) VALUES (1, 'Тест', 'такса', '2026-01-01')").run();
 env.DB.prepare(`INSERT INTO heats (dog_id, started_on, note, created_at) VALUES (1, '${heatStart}', null, '${heatStart}')`).run();

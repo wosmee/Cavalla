@@ -1,6 +1,36 @@
 // Telegram-бот Cavalla (grammy). Вебхук-режим: botInfo читаем лениво, внутри хендлеров (§37).
 import { Bot } from "grammy";
 import type { Env } from "./types";
+import { POLZ_PAGE_SIZE, formatPolzLine, polzPageInfo, polzText, type PolzRow } from "./polz.ts";
+
+// Владелец (Илья). /polz доступен только ему.
+const OWNER_ID = 673947355;
+
+// Страница списка пользователей: строки + inline-клавиатура «‹ ›».
+async function renderPolzPage(env: Env, page: number) {
+  const totalRes = await env.DB
+    .prepare("SELECT COUNT(*) AS n FROM users")
+    .first<{ n: number }>();
+  const total = Number(totalRes?.n ?? 0);
+  const info = polzPageInfo(total, page);
+  const { results } = await env.DB.prepare(
+    `SELECT u.id, u.username, GROUP_CONCAT(d.name, ', ') AS pets
+       FROM users u
+       LEFT JOIN dogs d ON d.owner_id = u.id AND d.archived = 0
+      GROUP BY u.id, u.username, u.first_seen_at
+      ORDER BY u.first_seen_at, u.id
+      LIMIT ? OFFSET ?`
+  ).bind(POLZ_PAGE_SIZE, info.offset).all<PolzRow>();
+  const lines = results.map(formatPolzLine);
+  const text = polzText(lines, info.page, info.pages, total);
+  const keyboard = {
+    inline_keyboard: [[
+      ...(info.page > 0 ? [{ text: "‹ Назад", callback_data: `polz:${info.page - 1}` }] : []),
+      ...(info.page < info.pages - 1 ? [{ text: "Вперёд ›", callback_data: `polz:${info.page + 1}` }] : []),
+    ]],
+  };
+  return { text, reply_markup: keyboard.inline_keyboard[0].length ? keyboard : undefined };
+}
 
 export async function bootstrap(env: Env, origin: string): Promise<Response> {
   const token = env.BOT_TOKEN;
@@ -82,6 +112,22 @@ function createBot(env: Env): Bot {
           : undefined,
       }
     );
+  });
+
+  // /polz — список всех пользователей (только владелец). Строка: @username (id) — клички.
+  bot.command("polz", async (ctx) => {
+    if (ctx.from?.id !== OWNER_ID) return; // чужим — молча, без подсказок
+    const page = await renderPolzPage(env, 0);
+    await ctx.reply(page.text, page.reply_markup ? { reply_markup: page.reply_markup } : undefined);
+  });
+  // листание страниц /polz
+  bot.callbackQuery(/^polz:(\d+)$/, async (ctx) => {
+    if (ctx.from?.id !== OWNER_ID) return;
+    const page = await renderPolzPage(env, Number(ctx.match[1]));
+    try {
+      await ctx.editMessageText(page.text, page.reply_markup ? { reply_markup: page.reply_markup } : undefined);
+    } catch { /* текст/клавиатура не изменились — игнорируем */ }
+    await ctx.answerCallbackQuery();
   });
   cached = bot;
   return bot;
