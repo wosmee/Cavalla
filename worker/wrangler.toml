@@ -1,0 +1,23 @@
+name = "cavalla-api"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# При деплое на свой аккаунт замените account_id и создайте свои D1/KV (см. README)
+account_id = "581ad2d4c7cd2ce6bc12e22aed56aa12"
+
+[assets]
+directory = "./public"
+not_found_handling = "single-page-application"
+
+[triggers]
+crons = ["17 4 * * *"]  # ~04:17 UTC (07:17 мск) раз в день
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cavalla"
+database_id = "a430b4de-0f1c-4574-a878-b6962809dc5e"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "7cfffdd56deb4a54a21c1ae14121b6e3"

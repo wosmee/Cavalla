@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+tmp/
+*.log
+.planning/
+.serena/
+cache/
+memories/
+.active_plan
+NEXT_SESSION.md
+2026-*/
+project.yml
+project.local.yml

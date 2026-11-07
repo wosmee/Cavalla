@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cavalla — дневник-планировщик</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #402f2f;
+    background: #fdf8f3;
+    line-height: 1.5;
+  }
+  .phone {
+    max-width: 420px; margin: 0 auto; min-height: 100vh;
+    background: #fdf8f3;
+    box-shadow: 0 0 40px rgba(64,47,47,.12);
+    display: flex; flex-direction: column;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px; padding: 16px 20px 4px;
+  }
+  .dog-avatar {
+    width: 46px; height: 46px; border-radius: 50%;
+    background: linear-gradient(135deg, #fde2c8, #f5c9a4);
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+  }
+  .dog-name { font-weight: 700; font-size: 17px; }
+  .dog-sub { font-size: 12px; color: #b09083; }
+  .header-actions { margin-left: auto; display: flex; gap: 8px; }
+  .hbtn {
+    border: none; background: #f6ece2; color: #8a6f63; width: 34px; height: 34px;
+    border-radius: 50%; cursor: pointer; font-size: 15px;
+  }
+
+  .tabs {
+    display: flex; gap: 4px; margin: 10px 16px 0;
+    background: #f1e6da; border-radius: 14px; padding: 4px;
+  }
+  .tab {
+    flex: 1; border: none; background: none; border-radius: 11px;
+    padding: 9px 0; font-size: 13.5px; font-weight: 600; color: #a08375;
+    cursor: pointer; font-family: inherit; transition: all .15s;
+  }
+  .tab.active { background: #fff; color: #c4545e; box-shadow: 0 2px 6px rgba(64,47,47,.08); }
+
+  .pane { display: none; padding: 14px 16px 0; }
+  .pane.active { display: block; }
+
+  /* --- Сегодня --- */
+  .today-card {
+    background: #fff; border-radius: 22px; padding: 20px;
+    box-shadow: 0 4px 16px rgba(64,47,47,.07); text-align: center;
+    margin-bottom: 14px;
+  }
+  .tc-day { font-size: 13px; color: #b09083; }
+  .tc-big { font-size: 15px; font-weight: 600; color: #c4545e; margin: 6px 0 2px; }
+  .tc-sub { font-size: 13.5px; color: #6b5348; }
+  .tc-plan { font-size: 12.5px; color: #b09083; margin-top: 8px; }
+  .circle {
+    width: 130px; height: 130px; margin: 14px auto;
+    border-radius: 50%;
+    background:
+      radial-gradient(closest-side, #fff 74%, transparent 75% 100%),
+      conic-gradient(#f6c6a0 0 8%, #f2836b 8% 14%, #f1e3d8 14% 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .circle b { font-size: 34px; color: #c4545e; line-height: 1; }
+  .circle span { font-size: 11px; color: #b09083; }
+
+  .q-card {
+    background: #fff; border-radius: 20px; padding: 16px 18px;
+    box-shadow: 0 4px 16px rgba(64,47,47,.07); margin-bottom: 14px;
+  }
+  .q-title { font-size: 14.5px; font-weight: 600; margin-bottom: 4px; }
+  .q-sub { font-size: 12px; color: #b09083; margin-bottom: 12px; }
+  .q-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .q {
+    flex: 1; min-width: 100px; border: 1.5px solid #f0e2d5; background: #fffdfb;
+    border-radius: 14px; padding: 12px 10px; text-align: center;
+    font-size: 12.5px; color: #8a6f63; cursor: pointer; font-family: inherit;
+    transition: all .15s;
+  }
+  .q:hover { border-color: #f5c9a4; }
+  .q.on { background: #fdf0e4; border-color: #f2836b; color: #c4545e; font-weight: 600; }
+  .q-next {
+    width: 100%; border: none; border-radius: 14px; padding: 13px;
+    background: #c4545e; color: #fff; font-size: 14.5px; font-weight: 600;
+    cursor: pointer; font-family: inherit; margin-top: 12px; opacity: .45; transition: opacity .2s;
+  }
+  .q-next.ready { opacity: 1; }
+  .q-next:active { transform: scale(.98); }
+
+  /* --- Календарь --- */
+  .cal-card {
+    background: #fff; border-radius: 22px; padding: 16px;
+    box-shadow: 0 4px 16px rgba(64,47,47,.07); margin-bottom: 14px;
+  }
+  .cal-head { display: flex; align-items: center; justify-content: space-between; padding: 0 6px 10px; }
+  .cal-title { font-size: 15px; font-weight: 600; }
+  .cal-nav { border: none; background: #f6ece2; color: #8a6f63; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .cal-dow { text-align: center; font-size: 10px; color: #c4a898; padding: 6px 0; }
+  .cal-day {
+    position: relative; aspect-ratio: 1; border-radius: 11px; border: none; background: none;
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
+    cursor: pointer; font-family: inherit; color: inherit;
+  }
+  .cal-day:hover { background: #f6ece2; }
+  .cal-day.dim { color: #e3d4c9; }
+  .cal-day.pro { background: #fbe4d2; }
+  .cal-day.estr { background: #f2836b; color: #fff; font-weight: 700; }
+  .cal-day.today { box-shadow: inset 0 0 0 2px #c4545e; }
+  .cal-day .s { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background: #f2b8a2; }
+  .cal-note { font-size: 12px; color: #b09083; text-align: center; padding-top: 10px; }
+
+  /* --- История --- */
+  .hist-card {
+    background: #fff; border-radius: 20px; padding: 16px 18px;
+    box-shadow: 0 4px 16px rgba(64,47,47,.07); margin-bottom: 14px;
+  }
+  .h-title { font-size: 14.5px; font-weight: 600; margin-bottom: 12px; }
+  .h-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #f6ece2; font-size: 13.5px; }
+  .h-row:last-of-type { border: none; }
+  .h-k { color: #8a6f63; }
+  .h-v { font-weight: 600; }
+  .h-v.accent { color: #c4545e; }
+  .h-bars { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .h-bar { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #8a6f63; }
+  .h-bar .track { flex: 1; height: 8px; background: #f6ece2; border-radius: 4px; overflow: hidden; }
+  .h-bar .fill { height: 100%; background: linear-gradient(90deg, #f5c9a4, #f2836b); border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <header>
+    <div class="dog-avatar">🐶</div>
+    <div>
+      <div class="dog-name">Дейзи</div>
+      <div class="dog-sub">джек-рассел · 2 года</div>
+    </div>
+    <div class="header-actions">
+      <button class="hbtn">🔔</button>
+      <button class="hbtn">⚙</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-p="p1">Сегодня</button>
+    <button class="tab" data-p="p2">Календарь</button>
+    <button class="tab" data-p="p3">История</button>
+  </div>
+
+  <!-- Сегодня -->
+  <div class="pane active" id="p1">
+    <div class="today-card">
+      <div class="tc-day">сегодня, 3 ноября</div>
+      <div class="circle"><b>5</b><span>день течки</span></div>
+      <div class="tc-big">Проэструс</div>
+      <div class="tc-sub">Дейзи пока не готова к вязке — петля отекает, выделения тёмные</div>
+      <div class="tc-plan">Охота ожидается 9–14 ноября · следующая течка ~ май 2027 (±7 дн.)</div>
+    </div>
+
+    <div class="q-card">
+      <div class="q-title">Как Дейзи сегодня?</div>
+      <div class="q-sub">Пара секунд — и прогноз станет точнее</div>
+      <div class="q-row">
+        <button class="q">Кровянистые<br>выделения</button>
+        <button class="q">Выделения<br>светлеют</button>
+        <button class="q">Петля<br>увеличена</button>
+        <button class="q">Ластится<br>к кобелям</button>
+        <button class="q">Отводит<br>хвост</button>
+        <button class="q">Кусает<br>поводок</button>
+        <button class="q">Больше<br>пьёт</button>
+        <button class="q">Много<br>спит</button>
+      </div>
+      <button class="q-next" id="save1">Записать день</button>
+    </div>
+  </div>
+
+  <!-- Календарь -->
+  <div class="pane" id="p2">
+    <div class="cal-card">
+      <div class="cal-head">
+        <button class="cal-nav">‹</button>
+        <div class="cal-title">Ноябрь 2026</div>
+        <button class="cal-nav">›</button>
+      </div>
+      <div class="cal-grid">
+        <div class="cal-dow">пн</div><div class="cal-dow">вт</div><div class="cal-dow">ср</div>
+        <div class="cal-dow">чт</div><div class="cal-dow">пт</div><div class="cal-dow">сб</div><div class="cal-dow">вс</div>
+        <div class="cal-day dim"></div><div class="cal-day dim"></div><div class="cal-day dim"></div>
+        <div class="cal-day dim"></div><div class="cal-day dim"></div><div class="cal-day dim"></div>
+        <button class="cal-day pro">1</button>
+        <button class="cal-day pro">2</button><button class="cal-day pro">3</button><button class="cal-day pro">4</button>
+        <button class="cal-day pro today">5</button>
+        <button class="cal-day pro">6</button><button class="cal-day pro">7</button>
+        <button class="cal-day pro">8</button><button class="cal-day estr">9</button>
+        <button class="cal-day estr">10</button><button class="cal-day estr">11</button>
+        <button class="cal-day estr">12</button><button class="cal-day estr">13</button>
+        <button class="cal-day estr">14</button><button class="cal-day pro">15</button><button class="cal-day pro">16</button>
+        <button class="cal-day pro">17</button><button class="cal-day pro">18</button><button class="cal-day pro">19</button>
+        <button class="cal-day pro">20</button><button class="cal-day pro">21</button><button class="cal-day pro">22</button>
+        <button class="cal-day pro">23</button><button class="cal-day pro">24</button><button class="cal-day pro">25</button>
+        <button class="cal-day pro">26</button><button class="cal-day pro">27</button><button class="cal-day pro">28</button>
+        <button class="cal-day pro">29</button><button class="cal-day pro">30</button>
+      </div>
+      <div class="cal-note">Розовые — проэструс · красные — охота (прогноз) · тапни по дню — заметка</div>
+    </div>
+  </div>
+
+  <!-- История -->
+  <div class="pane" id="p3">
+    <div class="hist-card">
+      <div class="h-title">Дейзи: сводка</div>
+      <div class="h-row"><span class="h-k">Записанных течек</span><span class="h-v">4</span></div>
+      <div class="h-row"><span class="h-k">Средний интервал</span><span class="h-v">163 дня · очень стабильно</span></div>
+      <div class="h-row"><span class="h-k">Средняя длительность</span><span class="h-v">22 дня</span></div>
+      <div class="h-row"><span class="h-k">Следующая течка</span><span class="h-v accent">~ 3–12 мая 2027</span></div>
+    </div>
+    <div class="hist-card">
+      <div class="h-title">Длины течек и интервалы</div>
+      <div class="h-bars">
+        <div class="h-bar"><span style="width:70px">апр–май 26</span><div class="track"><div class="fill" style="width:64%"></div></div><span>24 дня</span></div>
+        <div class="h-bar"><span style="width:70px">окт–ноя 26</span><div class="track"><div class="fill" style="width:58%"></div></div><span>идёт</span></div>
+      </div>
+      <div class="h-bar" style="margin-top:10px"><span style="width:70px">интервалы</span><div class="track"><div class="fill" style="width:80%"></div></div><span>165 · 167 дн.</span></div>
+    </div>
+  </div>
+
+  <div style="height:24px"></div>
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
+    document.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.id === t.dataset.p));
+  }));
+  const save = document.getElementById('save1');
+  const qs = document.querySelectorAll('.q');
+  qs.forEach(q => q.addEventListener('click', () => {
+    q.classList.toggle('on');
+    save.classList.toggle('ready', [...qs].some(x => x.classList.contains('on')));
+  }));
+  save.addEventListener('click', () => {
+    if (!save.classList.contains('ready')) return;
+    save.textContent = 'Записано ✓';
+  });
+</script>
+</body>
+</html>

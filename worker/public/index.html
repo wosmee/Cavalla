@@ -1,0 +1,1596 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cavalla</title>
+<!-- Telegram WebApp SDK: без него window.Telegram не существует и initData недоступен -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #3d2b33;
+    background: #faf6f1;
+    line-height: 1.5;
+  }
+  #app { max-width: 480px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; }
+  [hidden] { display: none !important; }
+
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 16px 6px; }
+  .dog-avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, #f3c5a0, #e8a87c);
+    background-size: cover; background-position: center;
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+    transition: transform .25s ease;
+    overflow: hidden;
+  }
+  .dog-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+  .dog-avatar.bump { animation: avbump .35s ease; }
+  @keyframes avbump {
+    40% { transform: scale(1.18) rotate(-6deg); }
+  }
+  .dog-name { font-weight: 600; font-size: 16px; }
+  .dog-sub { font-size: 12px; color: #a08a91; }
+  .header-actions { margin-left: auto; display: flex; gap: 8px; }
+  .hbtn {
+    border: none; background: #f3ebe3; color: #7a656d; width: 34px; height: 34px;
+    border-radius: 50%; cursor: pointer; font-size: 15px;
+  }
+  .dog-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 2px 16px 6px; }
+  .dog-tab {
+    border: 1.5px solid #eadfe4; background: #fff; color: #7a656d; border-radius: 999px;
+    padding: 5px 14px; font-size: 13px; cursor: pointer; font-family: inherit; white-space: nowrap;
+    transition: background .2s, border-color .2s, color .2s;
+  }
+  .dog-tab.active { background: #e8607a; border-color: #e8607a; color: #fff; font-weight: 600; }
+
+  .tabs {
+    display: flex; gap: 4px; margin: 8px 16px 0;
+    background: #f3ebe3; border-radius: 14px; padding: 4px;
+  }
+  .tab {
+    flex: 1; border: none; background: none; border-radius: 11px;
+    padding: 9px 0; font-size: 13.5px; font-weight: 600; color: #a08a91;
+    cursor: pointer; font-family: inherit; transition: color .2s, background .2s, box-shadow .2s;
+  }
+  .tab.active { background: #fff; color: #d4586e; box-shadow: 0 2px 6px rgba(61,43,51,.08); }
+
+  .pane { display: none; padding: 14px 16px 0; }
+  .pane.active { display: block; animation: fadeUp .3s ease; }
+  .card {
+    background: #fff; border-radius: 20px; padding: 18px;
+    box-shadow: 0 4px 16px rgba(61,43,51,.06); margin-bottom: 14px;
+  }
+  .card h2 { font-size: 14.5px; font-weight: 600; margin-bottom: 12px; }
+  .muted { color: #a08a91; font-size: 12.5px; }
+  .accent { color: #d4586e; }
+
+  /* --- Сегодня --- */
+  .today-card { text-align: center; }
+  .tc-date { font-size: 13px; color: #a08a91; }
+  .ring { position: relative; width: 220px; height: 220px; margin: 12px auto; }
+  .ring svg { transform: rotate(-90deg); }
+  .ring-center {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+  }
+  .day-num { font-size: 42px; font-weight: 700; color: #d4586e; line-height: 1; }
+  .day-label { font-size: 12px; color: #a08a91; }
+  .phase-chip {
+    margin-top: 8px; font-size: 12px; font-weight: 600;
+    background: #fbe3e8; color: #c14b62; border-radius: 999px; padding: 4px 12px;
+  }
+  .ring-forecast { font-size: 13px; color: #7a656d; text-align: center; }
+  .ring-forecast b { color: #3d2b33; }
+  .ring-forecast small { display: block; color: #b39aa2; margin-top: 4px; }
+
+  .act-row { display: flex; gap: 8px; }
+  .act-btn {
+    flex: 1; border: none; border-radius: 14px; padding: 13px 8px;
+    font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+    transition: transform .12s, opacity .2s;
+  }
+  .act-btn:active { transform: scale(.96); }
+  .act-btn:disabled { opacity: .55; }
+  .act-btn.primary { background: #e8607a; color: #fff; }
+  .act-btn.ghost { background: #f6efe9; color: #7a656d; }
+
+  .heat-note { font-size: 12px; color: #a08a91; margin-top: 3px; font-style: italic; }
+  .settle-hint {
+    background: #f1f6f2; border: 1.5px solid #cfe3d4; color: #3e6b50;
+    border-radius: 14px; padding: 10px 14px; font-size: 12.5px; margin-bottom: 12px;
+  }
+  .alert-box {
+    background: #fdf1ee; border: 1.5px solid #f2c7bd; color: #a4424f;
+    border-radius: 14px; padding: 12px 14px; font-size: 13px; margin-bottom: 14px;
+  }
+
+  .q-sub { font-size: 12px; color: #a08a91; margin-bottom: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    border: 1.5px solid #eadfe4; background: #fff; color: #7a656d;
+    border-radius: 999px; padding: 7px 14px; font-size: 13px; cursor: pointer;
+    font-family: inherit; transition: background .2s, border-color .2s, color .2s, transform .12s;
+  }
+  .chip:active { transform: scale(.95); }
+  .chip.on { background: #e8607a; border-color: #e8607a; color: #fff; }
+  .save-btn {
+    margin-top: 14px; width: 100%; border: none; border-radius: 14px;
+    background: #e8607a; color: #fff; font-size: 15px; font-weight: 600;
+    padding: 13px; cursor: pointer; font-family: inherit;
+    opacity: .45; transition: opacity .2s;
+  }
+  .save-btn.ready { opacity: 1; }
+  .note-field {
+    margin-top: 12px; width: 100%; border: 1.5px solid #eadfe4; border-radius: 12px;
+    padding: 10px 12px; font: inherit; font-size: 13px; color: #3d2b33; background: #fff;
+    resize: none;
+  }
+  .note-field[readonly] { background: #faf6f1; }
+
+  /* --- чекин: вариант A («всё хорошо» + слой симптомов) --- */
+  .chk-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .chk-title { font-size: 15px; font-weight: 700; }
+  .chk-sub { font-size: 12px; color: #a08a91; margin: 3px 0 14px; }
+  .day-switch { font-size: 12px; color: #a08a91; white-space: nowrap; }
+  .day-switch button {
+    border: 1px solid #eadfe4; background: #fff; color: #a08a91;
+    border-radius: 8px; width: 26px; height: 24px; cursor: pointer; font-family: inherit; line-height: 1;
+    transition: transform .12s;
+  }
+  .day-switch button:active { transform: scale(.9); }
+  .day-switch b { color: #7a656d; font-weight: 600; }
+  .ok-btn {
+    width: 100%; border: none; border-radius: 14px; padding: 14px;
+    background: #7fbf9a; color: #fff; font-size: 15px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 3px 10px rgba(127,191,154,.35);
+    transition: transform .12s, opacity .2s;
+  }
+  .ok-btn:active { transform: scale(.98); }
+  .ok-btn:disabled { opacity: .55; }
+  .ok-btn .ok-sub { display: block; font-weight: 400; font-size: 11px; opacity: .9; margin-top: 2px; }
+  .sym-toggle {
+    width: 100%; border: none; background: none; color: #a08a91; font-size: 12.5px;
+    padding: 12px 0 4px; cursor: pointer; font-family: inherit;
+  }
+  .sym-toggle .tt { color: #d4586e; font-weight: 600; }
+  .grp { margin-top: 10px; }
+  .grp-title { font-size: 12px; font-weight: 600; color: #7a656d; margin-bottom: 6px; }
+  .chip.warn { border-color: #e8b4be; color: #a4424f; background: #fff; }
+  .chip.warn.on { background: #fbe3e8; border-color: #a4424f; color: #a4424f; font-weight: 600; }
+  .note-link {
+    border: none; background: none; color: #a08a91; font-size: 12.5px;
+    cursor: pointer; font-family: inherit; padding: 0; margin-top: 12px; display: inline-block;
+  }
+  .chk-done .d-row { display: flex; align-items: center; gap: 10px; }
+  .chk-done .d-ok {
+    width: 34px; height: 34px; border-radius: 50%; background: #e5f3ea; color: #3e8f63;
+    display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+  }
+  .chk-done .d-main { flex: 1; min-width: 0; }
+  .chk-done .d-title { font-size: 14px; font-weight: 600; }
+  .chk-done .d-title .d-syms { font-weight: 400; color: #7a656d; }
+  .chk-done .d-sub { font-size: 12px; color: #a08a91; }
+  .chk-done .d-impact { font-size: 12.5px; color: #c14b62; margin: 8px 0 0 44px; }
+  .chk-done .d-impact::before { content: "↳ "; }
+  .chk-done .d-edit {
+    border: none; background: #f6efe9; color: #7a656d; border-radius: 999px;
+    padding: 7px 14px; font-size: 12.5px; cursor: pointer; font-family: inherit; flex-shrink: 0;
+  }
+  .chk-done .d-note { font-size: 12.5px; color: #7a656d; margin: 8px 0 0 44px; }
+  .d-impact-link { color: #c14b62; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+
+  /* --- Календарь --- */
+  .cal-head { display: flex; align-items: center; justify-content: space-between; padding: 0 6px 10px; }
+  .cal-title { font-size: 15px; font-weight: 600; }
+  .cal-nav { border: none; background: #f3ebe3; color: #7a656d; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 14px; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .cal-dow { text-align: center; font-size: 10px; color: #b39aa2; padding: 6px 0; }
+  .cal-day {
+    position: relative; aspect-ratio: 1; border-radius: 12px; border: none; background: none;
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
+    cursor: pointer; font-family: inherit; color: inherit;
+    transition: background .2s, color .2s, box-shadow .2s, transform .12s;
+  }
+  .cal-day:active { transform: scale(.9); }
+  .cal-day.dim { color: #d8c9ce; }
+  .cal-day.pro { background: #f8d9df; color: #b23a52; font-weight: 600; }
+  .cal-day.estr { background: #e8607a; color: #fff; font-weight: 700; }
+  .cal-day.today { box-shadow: inset 0 0 0 2px #d4586e; }
+  .cal-day .dot {
+    position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+    width: 5px; height: 5px; border-radius: 50%; background: #7fae8f;
+  }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; padding: 10px 4px 0; font-size: 11px; color: #7a656d; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .i-pro { background: #f8d9df; }
+  .i-est { background: #e8607a; }
+  .i-fc { background: #fdf0f3; border: 1px solid #f0c3ce; }
+  .i-check { background: #7fae8f; border-radius: 50%; }
+
+  /* --- История --- */
+  .h-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #f6ece2; font-size: 13.5px; }
+  .h-row:last-of-type { border: none; }
+  .h-k { color: #8a6f63; }
+  .h-v { font-weight: 600; text-align: right; }
+  .heat-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f6ece2; font-size: 13.5px; }
+  .heat-item:last-of-type { border: none; }
+  .heat-item .open { color: #c14b62; font-weight: 600; font-size: 11.5px; background: #fbe3e8; border-radius: 999px; padding: 2px 10px; }
+  .heat-item button { border: none; background: #f6efe9; color: #7a656d; border-radius: 10px; padding: 5px 12px; font-size: 12px; cursor: pointer; font-family: inherit; }
+
+  /* --- модалки --- */
+  .sheet-back {
+    position: fixed; inset: 0; background: rgba(61,43,51,0); z-index: 30;
+    display: flex; align-items: flex-end; justify-content: center;
+    transition: background .25s ease;
+  }
+  .sheet-back.open { background: rgba(61,43,51,.35); }
+  .sheet {
+    background: #faf6f1; border-radius: 24px 24px 0 0; padding: 20px 18px 28px;
+    width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto;
+  }
+  @keyframes up { from { transform: translateY(40px); opacity: .5; } }
+  .sheet h2 { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12.5px; color: #7a656d; margin-bottom: 5px; }
+  .field input, .field select {
+    width: 100%; border: 1.5px solid #eadfe4; border-radius: 12px;
+    padding: 11px 12px; font: inherit; font-size: 14px; color: #3d2b33; background: #fff;
+  }
+  .field .hint { font-size: 11.5px; color: #b39aa2; margin-top: 4px; }
+  .sheet .act-row { margin-top: 8px; }
+
+  /* настройки */
+  .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 1px solid #f6ece2; }
+  .toggle-row:last-of-type { border: none; }
+  .toggle-row .t-label { font-size: 13.5px; }
+  .toggle-row .t-sub { font-size: 11.5px; color: #b39aa2; }
+  .switch { position: relative; width: 44px; height: 26px; flex: none; }
+  .switch input { display: none; }
+  .switch .knob {
+    position: absolute; inset: 0; background: #e5d8d3; border-radius: 999px; transition: background .2s; cursor: pointer;
+  }
+  .switch .knob::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
+    border-radius: 50%; background: #fff; transition: left .2s;
+  }
+  .switch input:checked + .knob { background: #e8607a; }
+  .switch input:checked + .knob::after { left: 21px; }
+
+  /* онбординг / пусто */
+  .empty {
+    text-align: center; padding: 60px 24px;
+  }
+  .empty .big { font-size: 52px; }
+  .empty h1 { font-size: 20px; margin: 14px 0 6px; }
+  .empty p { color: #8a6f63; font-size: 13.5px; margin-bottom: 22px; }
+
+  .loader { text-align: center; padding: 80px 0; color: #a08a91; font-size: 13px; }
+  .toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: #3d2b33; color: #fff; font-size: 13px; border-radius: 999px;
+    padding: 9px 18px; z-index: 50; opacity: 0; transition: opacity .25s; pointer-events: none;
+    max-width: 90%; text-align: center;
+  }
+  .toast.show { opacity: .92; }
+
+  /* --- анимации --- */
+  .sheet { animation: up .3s cubic-bezier(.2,.8,.3,1); }
+  .sheet-back.closing .sheet { animation: down .2s ease-in forwards; }
+  .anim-in { animation: fadeUp .35s ease both; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } }
+  @keyframes down { to { transform: translateY(100%); opacity: .4; } }
+  @media (prefers-reduced-motion: reduce) {
+    .sheet, .anim-in, .sheet-back.closing .sheet, .pane.active, .dog-avatar.bump { animation: none !important; }
+  }
+
+  /* --- карточка дня --- */
+  .day-meta { font-size: 12.5px; color: #a08a91; margin: -6px 0 14px; }
+  .day-meta b { color: #7a656d; }
+  .day-sym-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .day-sym {
+    background: #fbe3e8; color: #c14b62; border-radius: 999px; padding: 6px 14px;
+    font-size: 13px; font-weight: 600;
+  }
+  .day-note {
+    background: #f6efe9; border-radius: 14px; padding: 12px 14px;
+    font-size: 13.5px; color: #3d2b33; white-space: pre-wrap;
+  }
+  .day-sec-title { font-size: 13px; font-weight: 600; color: #7a656d; margin: 14px 0 8px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="loader" id="loader">загрузка…</div>
+
+  <!-- онбординг: нет собак -->
+  <div id="onboarding" hidden>
+    <div class="empty">
+      <div class="big">🐶</div>
+      <h1>Добро пожаловать в Cavalla</h1>
+      <p>Календарь течки твоей собаки с умным прогнозом.<br>Начнём с первой собаки.</p>
+      <button class="act-btn primary" style="width:100%;padding:14px" onclick="ui.openAddDog(false)">＋ Добавить собаку</button>
+    </div>
+  </div>
+
+  <!-- основной каркас -->
+  <div id="main" hidden>
+    <header>
+      <div class="dog-avatar" id="dogAvatar">🐶</div>
+      <div>
+        <div class="dog-name" id="dogName"></div>
+        <div class="dog-sub" id="dogSub"></div>
+      </div>
+      <div class="header-actions">
+        <button class="hbtn" title="Про течку" onclick="ui.openGuide()">?</button>
+        <button class="hbtn" title="Уведомления" onclick="ui.openNotify()">🔔</button>
+        <button class="hbtn" title="Добавить собаку" onclick="ui.openAddDog(true)">＋</button>
+      </div>
+    </header>
+    <div class="dog-tabs" id="dogTabs"></div>
+
+    <div class="tabs">
+      <button class="tab active" data-p="p1">Сегодня</button>
+      <button class="tab" data-p="p2">Календарь</button>
+      <button class="tab" data-p="p3">История</button>
+    </div>
+
+    <!-- Сегодня -->
+    <div class="pane active" id="p1"></div>
+    <!-- Календарь -->
+    <div class="pane" id="p2"></div>
+    <!-- История -->
+    <div class="pane" id="p3"></div>
+    <div style="height:30px"></div>
+  </div>
+
+  <!-- шторки -->
+  <div id="sheetBack" class="sheet-back" hidden onclick="if(event.target===this)ui.closeSheet()">
+    <div class="sheet" id="sheet"></div>
+  </div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+// ===== Cavalla mini app: «Дневник» в палитре «Кольца» =====
+// initData -> заголовок x-tg-init-data на каждый запрос (NEXT_SESSION.md).
+// SDK подключён в <head> (telegram-web-app.js) — Telegram сам подписывает initData.
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+// вне Telegram-вебвю (браузер/десктоп-клиент) SDK нет: покажем честный экран
+const inTelegram = !!tg?.initData;
+
+const api = {
+  async call(path, method = "GET", body) {
+    const headers = { "content-type": "application/json" };
+    const initData = tg?.initData;
+    if (initData) headers["x-tg-init-data"] = initData;
+    const r = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    const data = await r.json().catch(() => ({ ok: false, error: "bad json" }));
+    if (r.status === 401) { state.authFailed = true; throw new Error("unauthorized"); }
+    return data;
+  },
+};
+
+const state = {
+  dogs: [], dogId: null, cycle: null, checkins: {}, notify: {}, heats: [],
+  calMonth: null, tab: "p1", authFailed: false, today: null,
+};
+
+const PHASE_RU = { proestrus: "проэструс", estrus: "охота", late: "поздняя течка", overdue: "затянулась" };
+const ALERT_RU = {
+  pus_discharge: () => `Признаки после течки, которые нельзя игнорировать: гнойные выделения из петли, или сильная жажда с потерей аппетита и вялостью. Это может быть пиометра (гнойное воспаление матки) — она бывает и БЕЗ выделений. Лечится, но время критично: покажите собаку ветеринару в ближайшие дни.`,
+  heat_long: a => `Течка идёт ${a.days}-й день — дольше месяца. Покажите собаку ветеринару: затяжная течка может указывать на гормональный сбой или кисту яичника.`,
+  no_heat_long: a => `От последней течки прошло ${Math.round(a.days / 30.44)} мес. У взрослой суки перерыв дольше года — повод показаться ветеринару.`,
+  first_heat_late: a => `Собаке ${a.months} мес., а первая течка ещё не наступала. Позже 18 месяцев — стоит спросить ветеринара.`,
+  interval_short: a => `В истории интервал ${a.days} дн. — короче нормы. Если это не разовая случайность, покажите ветеринару.`,
+  interval_long: a => `В истории интервал ${a.days} дн. (больше года). Разовые смещения бывают, но стабильно долгие интервалы — вопрос к вету.`,
+};
+const REG_RU = { "very-stable": "очень стабильно", "stable": "стабильно", "irregular": "нерегулярно" };
+const BREED_SIZE_RU = { small: "мелкая порода", medium: "средняя порода", large: "крупная порода", giant: "гигантская порода", annual: "течёт ~раз в год", unknown: "не определён" };
+function breedSizeClass() {
+  return state.cycle?.breedProfile?.sizeClass ?? null;
+}
+const MONTHS = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+const MONTHS_NOM = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+
+// Симптомы чекина: раздельные наборы. Ключи течного набора — контракт прогноза
+// (cycle.ts: ESTRUS_SYMPTOMS = discharge_light/flirty/tail_tuck) — не переименовывать.
+const SYMPTOMS_HEAT = [
+  ["discharge_dark", "Тёмные выделения"],
+  ["discharge_light", "Светлые выделения"],
+  ["discharge_pus", "Гнойные выделения"],
+  ["vulva_swollen", "Петля увеличена"],
+  ["flirty", "Ластится к кобелям"],
+  ["tail_tuck", "Отводит хвост"],
+  ["restless", "Беспокойная"],
+  ["calm", "Спокойная"],
+  ["appetite_more", "Ест больше"],
+  ["appetite_less", "Ест меньше"],
+  ["drinking", "Много пьёт"],
+];
+// Вне течки: наблюдения между циклами (ложная щенность, самочувствие).
+// discharge_pus остаётся — пиометру ловим всегда.
+const SYMPTOMS_OUT = [
+  ["discharge_pus", "Гнойные выделения"],
+  ["restless", "Беспокойная"],
+  ["calm", "Спокойная"],
+  ["appetite_more", "Ест больше"],
+  ["appetite_less", "Ест меньше"],
+  ["drinking", "Много пьёт"],
+  ["nesting", "Возится с «гнездом»"],
+  ["milk", "Молоко / набухли железы"],
+  ["vulva_swollen", "Петля набухла"],
+  ["vulva_normal", "Петля в норме"],
+];
+const SYMPTOM_LABELS = Object.fromEntries([...SYMPTOMS_HEAT, ...SYMPTOMS_OUT]);
+
+// Группы для компактной раскладки (A-вариант). Порядок внутри групп = порядок чипов.
+// Раньше ключ «appetite» жил с двумя смыслами (в течке «ест больше», вне — «ест меньше»)
+// и при этом входил в PUS_RISK_SYMPTOMS как «потеря аппетита». Разведено на два ключа:
+// appetite_less — потеря аппетита (в PUS_RISK в cycle.ts), appetite_more — просто наблюдение.
+const SYMPTOM_GROUPS = {
+  heat: [
+    ["Выделения", ["discharge_dark", "discharge_light", "discharge_pus"]],
+    ["Поведение", ["flirty", "tail_tuck", "restless", "calm"]],
+    ["Самочувствие", ["vulva_swollen", "appetite_more", "appetite_less", "drinking"]],
+  ],
+  out: [
+    ["Выделения", ["discharge_pus"]],
+    ["Поведение", ["restless", "calm", "nesting", "milk"]],
+    ["Самочувствие", ["vulva_swollen", "vulva_normal", "appetite_more", "appetite_less", "drinking"]],
+  ],
+};
+const WARN_SYMPTOMS = new Set(["discharge_pus"]);
+
+const DAY = 86400000;
+const iso = d => new Date(d).toISOString().slice(0, 10);
+const parseDay = s => { const [y,m,d] = s.split("-").map(Number); return Date.UTC(y, m-1, d); };
+const addDays = (s, n) => iso(parseDay(s) + n * DAY);
+const fmt = s => { const [y,m,d] = s.split("-").map(Number); return `${d} ${MONTHS[m-1]}${y !== new Date().getFullYear() ? " " + y : ""}`; };
+
+// ===== загрузка данных =====
+async function loadAll() {
+  const [dogsR, notifyR] = await Promise.all([api.call("/api/dogs"), api.call("/api/me/notify")]);
+  state.dogs = dogsR.dogs ?? [];
+  if (!state.dogs.length) { show("onboarding"); return; }
+  if (!state.dogId || !state.dogs.some(d => d.id === state.dogId)) state.dogId = state.dogs[0].id;
+  state.notify = notifyR.notify ?? {};
+  await loadDog();
+  show("main");
+  render();
+}
+
+async function loadDog() {
+  const [cycle, checkins, heats] = await Promise.all([
+    api.call(`/api/dogs/${state.dogId}/cycle`),
+    api.call(`/api/dogs/${state.dogId}/checkins`),
+    api.call(`/api/dogs/${state.dogId}/heats`),
+  ]);
+  state.cycle = cycle.status;
+  state.today = cycle.status.today;
+  state.checkins = {};
+  for (const c of (checkins.checkins ?? [])) state.checkins[c.day] = { symptoms: JSON.parse(c.symptoms), note: c.note };
+  state.heats = heats.heats ?? [];
+}
+
+// перезагрузка списка течек после мутаций: цикл и чекины не меняются вместе с ним
+async function refreshHeats() {
+  state.heats = (await api.call(`/api/dogs/${state.dogId}/heats`)).heats ?? state.heats;
+}
+
+function show(id) {
+  document.getElementById("loader").hidden = true;
+  document.getElementById("onboarding").hidden = id !== "onboarding";
+  document.getElementById("main").hidden = id !== "main";
+}
+
+// ===== рендер =====
+function render() {
+  renderHeader(); renderToday(); renderCalendar(); renderHistory();
+}
+
+function renderHeader() {
+  const dog = state.dogs.find(d => d.id === state.dogId);
+  document.getElementById("dogName").textContent = dog.name;
+  const bits = [];
+  if (dog.breed) bits.push(dog.breed);
+  if (dog.birth_date) bits.push(maybePlural(yearsSince(dog.birth_date)));
+  document.getElementById("dogSub").textContent = bits.join(" · ");
+  const av = document.getElementById("dogAvatar");
+  av.style.cursor = "pointer";
+  av.title = "Профиль собаки";
+  av.onclick = openEditDog;
+  const prevEmoji = av.dataset.emoji;
+  // пользовательское фото — приоритет; эмодзи по породе — фолбэк.
+  // <img> не умеет слать заголовок x-tg-init-data, поэтому initData едет
+  // query-параметром (handleApi принимает init_data из URL — api.ts)
+  const avatarUrl = dog.has_avatar ? avatarUrlFor(dog.id) : null;
+  const emoji = avatarUrl ? "" : dogEmoji(dog);
+  av.dataset.emoji = emoji;
+  av.textContent = emoji;
+  const oldImg = av.querySelector("img");
+  if (avatarUrl) {
+    if (oldImg) oldImg.src = avatarUrl;
+    else {
+      const img = document.createElement("img");
+      img.alt = dog.name;
+      img.src = avatarUrl;
+      img.referrerPolicy = "no-referrer";
+      // битая картинка хуже эмодзи: при ошибке грузим фолбэк
+      img.onerror = () => { img.remove(); av.textContent = dogEmoji(dog); av.dataset.emoji = dogEmoji(dog); };
+      av.appendChild(img);
+    }
+  } else if (oldImg) oldImg.remove();
+  if (prevEmoji && prevEmoji !== emoji && !avatarUrl) { // смена породы/собаки — живой отклик
+    av.classList.remove("bump");
+    void av.offsetWidth;
+    av.classList.add("bump");
+  }
+  const tabs = document.getElementById("dogTabs");
+  tabs.hidden = state.dogs.length < 2;
+  if (state.dogs.length >= 2) {
+    tabs.innerHTML = state.dogs.map(d =>
+      `<button class="dog-tab${d.id === state.dogId ? " active" : ""}" data-id="${d.id}">${esc(d.name)}</button>`).join("");
+    tabs.querySelectorAll(".dog-tab").forEach(b => b.onclick = () => switchDog(+b.dataset.id));
+  }
+}
+function yearsSince(bd) { return Math.max(0, Math.floor((parseDay(state.today) - parseDay(bd)) / (365.25 * DAY))); }
+
+// URL аватара: initData в query (картинка не может нести заголовок авторизации).
+// ?v= — timestamp фото: сервер кеширует ответ (immutable), смена фото = новый URL
+function avatarUrlFor(dogId) {
+  const d = state.dogs.find(x => x.id === dogId);
+  const v = d?.avatar_updated_at ? Date.parse(d.avatar_updated_at) : 0;
+  const iid = encodeURIComponent(tg?.initData ?? "");
+  return `/api/dogs/${dogId}/avatar?v=${v}&init_data=${iid}`;
+}
+
+// Эмодзи-аватар по породе. Тот же принцип, что словарь breeds.ts: длинные составные
+// ключи раньше коротких; нормализация как в normalizeBreed (регистр, ё→е, без ъ/ь, дефисы).
+const BREED_EMOJI = [
+  // длинные составные ключи — раньше коротких (как в breeds.ts)
+  ["немецкая овчарка", "🐕‍🦺"], ["восточноевропейска", "🐕‍🦺"], ["бельгийска овчарка", "🐕‍🦺"], ["малинуа", "🐕‍🦺"],
+  ["овчарка", "🐕‍🦺"],
+  ["доберман", "🦮"], ["добик", "🦮"], ["ротве", "🦮"], ["ротв", "🦮"],
+  ["лабрадор", "🐕"], ["лабадор", "🐕"], ["лабрик", "🐕"], ["голден", "🐕"], ["ретривер", "🐕"],
+  ["хаски", "🐺"], ["маламут", "🐺"], ["лайка", "🐕"],
+  ["корги", "🐕"],
+  ["пудел", "🐩"], ["пудель", "🐩"], ["болонка", "🐩"], ["мальтезе", "🐩"], ["мальтийска", "🐩"], ["бишон", "🐩"],
+  ["шпиц", "🦊"], ["померан", "🦊"],
+  ["чихуаху", "🐕"], ["шитцу", "🐕"], ["ши тцу", "🐕"], ["шицу", "🐕"], ["йорк", "🐕"],
+  ["самоед", "🐕"], ["акита", "🐕"], ["сиба", "🐕"], ["шиба", "🐕"],
+  ["шарпе", "🐕"], ["шар пей", "🐕"], ["мопс", "🐶"], ["пекинес", "🐶"],
+  ["такса", "🐕"], ["дакел", "🐕"],
+  ["бигл", "🐕"], ["спаниел", "🐕"], ["кокер", "🐕"],
+  ["колли", "🐕"], ["шелти", "🐕"], ["бордер", "🐕"],
+  ["булдог", "🐶"], ["бултер", "🐕"], ["питбул", "🐕"], ["стаффорд", "🐕"],
+  ["эрдель", "🐕"], ["шнауцер", "🐕"],
+  ["далматин", "🐕"], ["долматин", "🐕"],
+  ["дворняга", "🐶"], ["дворняжка", "🐶"], ["метис", "🐶"], ["двортерьер", "🐶"],
+];
+const SIZE_EMOJI = { small: "🐶", medium: "🐕", large: "🐕‍🦺", giant: "🐕‍🦺", annual: "🐕", unknown: "🐶" };
+function normalizeBreedLocal(s) {
+  return s.toLowerCase().replace(/ё/g, "е").replace(/[ъь]/g, "").replace(/[-–—_/]/g, " ").replace(/\s+/g, " ").trim();
+}
+function dogEmoji(dog) {
+  if (dog?.breed) {
+    const n = normalizeBreedLocal(dog.breed);
+    if (n) {
+      for (const [k, e] of BREED_EMOJI) if (n.includes(k)) return e;
+    }
+  }
+  return SIZE_EMOJI[breedSizeClass() ?? "unknown"];
+}
+function maybePlural(n) {
+  const mod10 = n % 10, mod100 = n % 100;
+  const word = mod10 === 1 && mod100 !== 11 ? "год" : [2,3,4].includes(mod10) && ![12,13,14].includes(mod100) ? "года" : "лет";
+  return `${n} ${word}`;
+}
+
+function renderToday() {
+  const p1 = document.getElementById("p1");
+  const st = state.cycle;
+  if (!st) { p1.innerHTML = ""; return; }
+  let html = "";
+
+  for (const a of st.alerts) {
+    html += `<div class="alert-box">⚠️ ${ALERT_RU[a.kind]?.(a) ?? ""}</div>`;
+  }
+
+  if (st.inHeat && st.openHeat) {
+    const oh = st.openHeat;
+    const dur = st.stats.avgDurationDays ?? 21;
+    const total = 21; // кольцо: видимая длина течки ~21 день для прогресса
+    const frac = Math.min(1, oh.day / total);
+    const circ = 2 * Math.PI * 100;
+    const estrFrac = st.inHeat && oh.estrusWindow ? Math.min(1, (parseDay(oh.estrusWindow.from) - parseDay(oh.started_on) + 1) / total) : 0.45;
+    html += `
+    <div class="card today-card">
+      <div class="tc-date">сегодня, ${fmt(st.today)}</div>
+      <div class="ring">
+        <svg width="220" height="220" viewBox="0 0 220 220">
+          <circle cx="110" cy="110" r="100" fill="none" stroke="#f3ebe3" stroke-width="13"/>
+          <circle cx="110" cy="110" r="100" fill="none" stroke="#f8d9df" stroke-width="13"
+            stroke-dasharray="${(circ * frac).toFixed(1)} ${circ.toFixed(1)}"/>
+          <circle cx="110" cy="110" r="100" fill="none" stroke="#e8607a" stroke-width="13"
+            stroke-dasharray="${(circ * Math.min(frac, estrFrac) * 0.4).toFixed(1)} ${circ.toFixed(1)}"
+            stroke-dashoffset="${(-circ * estrFrac * 0.8).toFixed(1)}"/>
+        </svg>
+        <div class="ring-center">
+          <div class="day-num">${oh.day}</div>
+          <div class="day-label">день течки</div>
+          <div class="phase-chip">${PHASE_RU[oh.phase]}${oh.phaseSource === "symptoms" ? " · по симптомам" : ""}</div>
+        </div>
+      </div>
+      <div class="ring-forecast">
+        Охота ожидается <b>${fmt(oh.estrusWindow.from)} — ${fmt(oh.estrusWindow.to)}</b><br>
+        ожидаемое окончание ~ <b>${fmt(oh.expectedEndOn)}</b>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Течка идёт</h2>
+      <div class="q-sub">закончилась, когда выделения стали светлыми и почти пропали, а петля уменьшилась (кобели, впрочем, могут ещё интересоваться — это нормальный «хвост» течки)</div>
+      ${oh.settleHint ? `<div class="settle-hint">💤 По чекинам она спокойная и петля в норме — похоже, течка закончилась. Если выделений нет пару дней — можно закрыть.</div>` : ""}
+      <div class="act-row">
+        <button class="act-btn ghost" onclick="ui.endHeat()">Закончилась</button>
+        <button class="act-btn ghost" onclick="ui.cancelHeat()">Отменить</button>
+      </div>
+    </div>`;
+  } else if (st.nextHeat) {
+    const nh = st.nextHeat;
+    const days = nh.overdueDays > 0 ? null : Math.max(0, Math.round((parseDay(nh.expectedOn) - parseDay(st.today)) / DAY));
+    const circ = 2 * Math.PI * 100;
+    const waiting = 180;
+    const passed = Math.max(0, Math.min(waiting, Math.round((parseDay(st.today) - (parseDay(nh.expectedOn) - (nh.marginDays + waiting))) / DAY)));
+    html += `
+    <div class="card today-card">
+      <div class="tc-date">сегодня, ${fmt(st.today)}</div>
+      <div class="ring">
+        <svg width="220" height="220" viewBox="0 0 220 220">
+          <circle cx="110" cy="110" r="100" fill="none" stroke="#f3ebe3" stroke-width="13"/>
+          <circle cx="110" cy="110" r="100" fill="none" stroke="#f2c9d2" stroke-width="13" stroke-dasharray="${(circ * passed / waiting).toFixed(1)} ${circ.toFixed(1)}"/>
+        </svg>
+        <div class="ring-center">
+          <div class="day-num">${days === null ? "…" : days}</div>
+          <div class="day-label">${days === null ? "окно позади" : days ? "дней до прогноза" : "сегодня возможна течка"}</div>
+          <div class="phase-chip">между циклами</div>
+        </div>
+      </div>
+      <div class="ring-forecast">
+        ${nh.overdueDays > 0
+          ? `Окно <b>${fmt(nh.from)} — ${fmt(nh.to)}</b> закрылось ${nh.overdueDays} дн. назад. Разовые смещения — норма.`
+          : `Следующая течка ожидается <b>${fmt(nh.expectedOn)}</b><br>окно: ${fmt(nh.from)} — ${fmt(nh.to)}`}
+        ${nh.hint ? `<small>прогноз ±${nh.marginDays} дн. по общей норме — внеси ещё цикл, чтобы уточнить</small>` : st.stats.heatsCount <= 2 && breedSizeClass() && breedSizeClass() !== "unknown" ? `<small>прогноз по норме породы (${BREED_SIZE_RU[breedSizeClass()]}) — станет твоим, когда запишешь ещё циклы</small>` : ""}
+      </div>
+    </div>
+    <div class="card">
+      <div class="act-row">
+        <button class="act-btn primary" onclick="ui.startHeat()">Началась течка</button>
+      </div>
+    </div>`;
+  } else {
+    html += `
+    <div class="card today-card">
+      <div class="tc-date">сегодня, ${fmt(st.today)}</div>
+      <div class="ring-center" style="position:static;height:120px">
+        <div style="font-size:44px">🐕</div>
+        <div class="muted" style="margin-top:8px">История пуста — отметь первую течку,<br>и Cavalla начнёт строить прогноз</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="act-row">
+        <button class="act-btn primary" onclick="ui.startHeat()">Началась течка</button>
+        <button class="act-btn ghost" onclick="ui.openBackfill()">Прошлые течки</button>
+      </div>
+    </div>`;
+  }
+
+  // чекин
+  html += renderCheckinCard(st);
+  p1.innerHTML = html;
+  bindCheckinCard(p1, st);
+}
+
+// ===== карточка чекина (вариант A): «всё хорошо» главным жестом, симптомы вторым слоем =====
+let chkDayOffset = 0; // -2..0: позавчера/вчера/сегодня (будущего в чекинах нет)
+let chkSymOpen = false; // раскрыт ли слой симптомов
+function checkinDay(st) { return addDays(st.today, chkDayOffset); }
+function daySwitchLabel(st) {
+  if (chkDayOffset === 0) return "сегодня";
+  const d = chkDayOffset;
+  return d === -1 ? "вчера" : addDays(st.today, d).slice(5).split("-").reverse().join(".");
+}
+
+// подзаголовок карточки: контекст выбранного дня
+function checkinContext(st, day) {
+  if (st.inHeat && st.openHeat) {
+    const dayN = Math.round((parseDay(day) - parseDay(st.openHeat.started_on)) / DAY) + 1;
+    return dayN >= 1 ? `день ${dayN} течки · ${PHASE_RU[st.openHeat.phase]}` : "до течки";
+  }
+  if (st.nextHeat) {
+    const to = Math.round((parseDay(st.nextHeat.from) - parseDay(day)) / DAY);
+    if (to > 0) return `между циклами · до окна прогноза ${to} дн.`;
+    if (st.nextHeat.overdueDays > 0) return "между циклами · окно прогноза позади";
+    return "между циклами · окно возможного начала";
+  }
+  return "между циклами";
+}
+
+// «её норма»: частые симптомы за последние 30 дн записей (>=7 дней наблюдений)
+function normSummary(day, symptoms) {
+  const from = addDays(day, -30);
+  const entries = Object.entries(state.checkins).filter(([d]) => d >= from && d <= day);
+  const daysWithSym = entries.filter(([, c]) => (c.symptoms ?? []).length > 0);
+  if (entries.length < 7) return null;
+  const freq = new Map();
+  for (const [, c] of daysWithSym) for (const s of c.symptoms) {
+    if (WARN_SYMPTOMS.has(s)) continue; // гной в «норму» не входит
+    freq.set(s, (freq.get(s) ?? 0) + 1);
+  }
+  const top = [...freq.entries()].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 2)
+    .map(([k]) => SYMPTOM_LABELS[k] ?? k);
+  if (daysWithSym.length === 0) return "всё спокойно — это и есть её норма";
+  const isNormDay = symptoms.every(s => WARN_SYMPTOMS.has(s) || freq.get(s)); // сегодня — знакомые симптомы
+  const normText = top.length ? `обычно: ${top.join(", ").toLowerCase()}` : "обычно всё спокойно";
+  return isNormDay && symptoms.length ? `${normText} — знакомая картина` : normText;
+}
+
+// импакт-строка: что этот чекин меняет в прогнозе.
+// "⚑ vet_checkin_pus" — маркер: заменяется на кликабельную строку «к ветеринару» (bindCheckinCard).
+function checkinImpact(st, day, symptoms) {
+  const bits = [];
+  if (st.inHeat && st.openHeat && symptoms.some(s => ["discharge_light", "flirty", "tail_tuck"].includes(s))) {
+    const firstEstrus = !(st.checkins ?? {});
+    bits.push(firstEstrus ? "фаза уточнена по симптому — окно охоты сдвинуто" : "окно охоты уточняется по симптомам");
+  }
+  if (symptoms.includes("discharge_pus")) bits.push("⚑ vet_checkin_pus");
+  if (symptoms.length === 0 || !symptoms.some(s => WARN_SYMPTOMS.has(s))) {
+    const norm = normSummary(day, symptoms);
+    if (norm) bits.push(norm);
+  }
+  return bits.join(" · ");
+}
+
+function renderImpact(impact) {
+  // маркер pus → кликабельная ссылка на раздел гайда «Когда к вету»
+  const parts = impact.split(" · ").map(p => {
+    if (p === "⚑ vet_checkin_pus") {
+      return `<a class="d-impact-link" id="chkVetLink" href="javascript:void(0)">гнойные выделения — что это значит и когда к ветеринару</a>`;
+    }
+    return esc(p);
+  });
+  return parts.join(" · ");
+}
+
+function renderCheckinCard(st) {
+  const day = checkinDay(st);
+  const chk = state.checkins[day];
+  const inHeat = st.inHeat;
+  const groups = inHeat ? SYMPTOM_GROUPS.heat : SYMPTOM_GROUPS.out;
+
+  let out = "";
+  if (!inHeat && st.postHeatWatch?.inWindow && chkDayOffset === 0) {
+    out += `
+    <div class="card">
+      <h2>После течки</h2>
+      <div class="q-sub">прошло ${Math.max(1, Math.round((parseDay(st.today) - parseDay(st.postHeatWatch.since)) / DAY))} дн. с окончания — если набухают молочные железы, собака возится с «гнездом» или появляется молоко, это «ложная щенность»: гормональная норма, обычно проходит сама. Молока много или собака вялая — покажите ветеринару.</div>
+    </div>`;
+  }
+
+  if (chk && !chkSymOpen) {
+    // записанное состояние: свёрнуто; шапка с переключателем дней — как у формы
+    const syms = chk.symptoms ?? [];
+    const impact = checkinImpact(st, day, syms);
+    out += `
+    <div class="card chk-done">
+      <div class="chk-head">
+        <div class="chk-title">${syms.length ? "Записано" : "Всё хорошо"}</div>
+        <div class="day-switch">
+          <button id="chkPrevD" aria-label="предыдущий день"${chkDayOffset <= -2 ? " disabled" : ""}>‹</button>
+          <b>${daySwitchLabel(st)}</b>
+          <button id="chkNextD" aria-label="к сегодня"${chkDayOffset >= 0 ? " hidden" : ""}>›</button>
+        </div>
+      </div>
+      <div class="d-row">
+        <div class="d-ok">${syms.length ? "✎" : "✓"}</div>
+        <div class="d-main">
+          <div class="d-title">${syms.length ? `<span class="d-syms">${esc(syms.map(k => SYMPTOM_LABELS[k] ?? k).join(", "))}</span>` : "самочувствие в норме, симптомов нет"}</div>
+          ${chk.note ? `<div class="d-sub">«${esc(chk.note)}»</div>` : ""}
+        </div>
+        <button class="d-edit" id="chkEdit">Изменить</button>
+      </div>
+      ${impact ? `<div class="d-impact" id="chkImpact">${renderImpact(impact)}</div>` : ""}
+    </div>`;
+    return out;
+  }
+
+  // форма
+  const checked = chk ? chk.symptoms : [];
+  const noteVal = chk?.note ?? "";
+  out += `
+  <div class="card">
+    <div class="chk-head">
+      <div class="chk-title">Как ${esc(state.dogs.find(d => d.id === state.dogId)?.name ?? "она")} ${chkDayOffset === 0 ? "сегодня" : "была"}?</div>
+      <div class="day-switch">
+        <button id="chkPrev" aria-label="предыдущий день"${chkDayOffset <= -2 ? " disabled" : ""}>‹</button>
+        <b>${daySwitchLabel(st)}</b>
+        <button id="chkNext" aria-label="к сегодня"${chkDayOffset >= 0 ? " hidden" : ""}>›</button>
+      </div>
+    </div>
+    <div class="chk-sub">${esc(checkinContext(st, day))}</div>
+    ${chkSymOpen ? "" : `
+    <button class="ok-btn" id="chkOk">Всё хорошо<span class="ok-sub">${inHeat ? "выделений нет, самочувствие в норме" : "наблюдения между циклами — так узнаем её норму"}</span></button>
+    <button class="sym-toggle" id="chkSymToggle">Есть что отметить — <span class="tt">симптомы</span></button>`}
+    <div id="chkSymBlock" ${chkSymOpen ? "" : "hidden"}>
+      ${groups.map(([g, keys]) => `
+      <div class="grp">
+        <div class="grp-title">${g}</div>
+        <div class="chips">
+          ${keys.map(k => `<button class="chip${checked.includes(k) ? " on" : ""}${WARN_SYMPTOMS.has(k) ? " warn" : ""}" data-sym="${k}">${SYMPTOM_LABELS[k]}</button>`).join("")}
+        </div>
+      </div>`).join("")}
+      <button class="note-link" id="chkNoteBtn">+ заметка на день…</button>
+      <textarea class="note-field" id="chkNote" rows="2" maxlength="500" placeholder="заметка (необязательно)" hidden>${esc(noteVal)}</textarea>
+      <button class="save-btn" id="chkSave">Записать день</button>
+    </div>
+  </div>`;
+  return out;
+}
+
+function bindCheckinCard(p1, st) {
+  const day = checkinDay(st);
+  // свёрнутое (записанное) состояние
+  const editBtn = p1.querySelector("#chkEdit");
+  if (editBtn) editBtn.onclick = () => { chkSymOpen = true; renderToday(); };
+  const prevD = p1.querySelector("#chkPrevD");
+  const nextD = p1.querySelector("#chkNextD");
+  if (prevD) prevD.onclick = () => { chkDayOffset = Math.max(-2, chkDayOffset - 1); renderToday(); };
+  if (nextD) nextD.onclick = () => { chkDayOffset = 0; renderToday(); };
+  const vetLink = p1.querySelector("#chkVetLink");
+  if (vetLink) vetLink.onclick = () => openGuide();
+  // форма
+  const prev = p1.querySelector("#chkPrev");
+  const next = p1.querySelector("#chkNext");
+  if (prev) prev.onclick = () => { chkDayOffset = Math.max(-2, chkDayOffset - 1); renderToday(); };
+  if (next) next.onclick = () => { chkDayOffset = 0; renderToday(); };
+  const okBtn = p1.querySelector("#chkOk");
+  if (okBtn) okBtn.onclick = () => once(okBtn, () => saveCheckin(day, []));
+  const toggle = p1.querySelector("#chkSymToggle");
+  if (toggle) toggle.onclick = () => { chkSymOpen = true; renderToday(); };
+  const noteBtn = p1.querySelector("#chkNoteBtn");
+  if (noteBtn) noteBtn.onclick = () => {
+    const ta = p1.querySelector("#chkNote");
+    ta.hidden = false;
+    noteBtn.hidden = true;
+    ta.focus();
+  };
+  const save = p1.querySelector("#chkSave");
+  if (!save) return;
+  p1.querySelectorAll("#chkSymBlock .chip").forEach(c => c.onclick = () => {
+    c.classList.toggle("on");
+    updateChkSaveBtn(p1);
+  });
+  const ta = p1.querySelector("#chkNote");
+  ta.oninput = updateChkSaveBtn;
+  updateChkSaveBtn(p1);
+  save.onclick = () => {
+    if (!save.classList.contains("ready")) return;
+    const symptoms = [...p1.querySelectorAll("#chkSymBlock .chip.on")].map(c => c.dataset.sym);
+    const note = p1.querySelector("#chkNote").value.trim().slice(0, 500) || null;
+    once(save, () => saveCheckin(day, symptoms, note));
+  };
+}
+function updateChkSaveBtn(p1) {
+  const save = p1.querySelector("#chkSave");
+  if (!save) return;
+  const any = p1.querySelectorAll("#chkSymBlock .chip.on").length > 0 || p1.querySelector("#chkNote").value.trim() !== "";
+  save.classList.toggle("ready", any);
+}
+
+async function saveCheckin(day, symptoms, note = null) {
+  await api.call(`/api/dogs/${state.dogId}/checkins`, "POST", { day, symptoms, note });
+  if (note === null && state.checkins[day]?.note) note = state.checkins[day].note;
+  state.checkins[day] = { symptoms, note: note ?? null };
+  chkSymOpen = false;
+  toast(symptoms.length ? "Записано ✓" : "Всё хорошо — записано ✓");
+  await reloadCycle();
+}
+
+function renderCalendar() {
+  const p2 = document.getElementById("p2");
+  const st = state.cycle;
+  if (!st) { p2.innerHTML = ""; return; }
+  if (!state.calMonth) {
+    state.calMonth = st.today.slice(0, 7);
+  }
+  const [y, m] = state.calMonth.split("-").map(Number);
+  const first = Date.UTC(y, m - 1, 1);
+  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const dow = (new Date(first).getUTCDay() + 6) % 7; // пн=0
+
+  // карта фаз по дням
+  const phases = {}; // day-iso -> "pro"|"estr"
+  const dots = new Set(Object.keys(state.checkins));
+  const fc = {}; // прогнозные дни
+  for (const h of st.heats) {
+    const end = h.ended_on ?? (st.inHeat && st.openHeat && st.openHeat.started_on === h.started_on ? st.today : h.started_on);
+    for (let d = h.started_on; d <= end; d = addDays(d, 1)) {
+      const dayN = Math.round((parseDay(d) - parseDay(h.started_on)) / DAY) + 1;
+      phases[d] = dayN <= 9 ? "pro" : dayN <= 15 ? "estr" : "pro";
+    }
+  }
+  if (st.inHeat && st.openHeat) {
+    const oh = st.openHeat;
+    for (let d = oh.estrusWindow.from; d <= oh.estrusWindow.to && d <= st.today; d = addDays(d, 1)) {
+      phases[d] = "estr";
+    }
+    for (let d = addDays(st.today, 1); d <= oh.expectedEndOn; d = addDays(d, 1)) fc[d] = 1;
+  }
+  if (st.nextHeat && st.nextHeat.overdueDays === 0 && !st.inHeat) {
+    for (let d = st.nextHeat.from; d <= st.nextHeat.to; d = addDays(d, 1)) fc[d] = 1;
+  }
+
+  let cells = "";
+  for (let i = 0; i < dow; i++) cells += `<div class="cal-day dim"></div>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dayIso = `${state.calMonth}-${String(d).padStart(2, "0")}`;
+    const cls = ["cal-day"];
+    if (phases[dayIso]) cls.push(phases[dayIso]);
+    else if (fc[dayIso]) cls.push("fc");
+    if (dayIso === st.today) cls.push("today");
+    cells += `<button class="${cls.join(" ")}" data-d="${dayIso}">${d}${dots.has(dayIso) ? '<span class="dot"></span>' : ""}</button>`;
+  }
+  p2.innerHTML = `
+  <div class="card">
+    <div class="cal-head">
+      <button class="cal-nav" id="calPrev">‹</button>
+      <div class="cal-title">${MONTHS_NOM[m - 1]} ${y}</div>
+      <button class="cal-nav" id="calNext">›</button>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-dow">пн</div><div class="cal-dow">вт</div><div class="cal-dow">ср</div>
+      <div class="cal-dow">чт</div><div class="cal-dow">пт</div><div class="cal-dow">сб</div><div class="cal-dow">вс</div>
+      ${cells}
+    </div>
+    <div class="legend">
+      <span><i class="i-pro"></i>проэструс</span>
+      <span><i class="i-est"></i>охота</span>
+      <span><i class="i-fc"></i>прогноз</span>
+      <span><i class="i-check"></i>есть чекин</span>
+    </div>
+  </div>`;
+  p2.querySelector("#calPrev").onclick = () => shiftMonth(-1);
+  p2.querySelector("#calNext").onclick = () => shiftMonth(1);
+  p2.querySelectorAll(".cal-day[data-d]").forEach(b => b.onclick = () => showDay(b.dataset.d));
+}
+
+function shiftMonth(delta) {
+  const [y, m] = state.calMonth.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  state.calMonth = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  renderCalendar();
+}
+
+function showDay(day) { openDaySheet(day); }
+
+function openDaySheet(day) {
+  const st = state.cycle;
+  const chk = state.checkins[day];
+  const syms = chk ? chk.symptoms : [];
+  const isToday = day === st.today;
+
+  // контекст дня: день течки / окно охоты / прогноз
+  let meta = "";
+  for (const h of st.heats) {
+    const end = h.ended_on ?? (st.inHeat && st.openHeat?.started_on === h.started_on ? st.today : null);
+    if (!end) continue;
+    if (day >= h.started_on && day <= end) {
+      const dayN = Math.round((parseDay(day) - parseDay(h.started_on)) / DAY) + 1;
+      meta = `<b>${dayN}-й день течки</b> (с ${fmt(h.started_on)})`;
+      break;
+    }
+  }
+  if (!meta && st.openHeat?.estrusWindow && day >= st.openHeat.estrusWindow.from && day <= st.openHeat.estrusWindow.to) {
+    meta = "<b>окно охоты</b> — дольше гулять только на поводке";
+  }
+  if (!meta && !st.inHeat && st.nextHeat && st.nextHeat.overdueDays === 0 && day >= st.nextHeat.from && day <= st.nextHeat.to) {
+    meta = "<b>прогноз течки</b> — окно возможного начала";
+  }
+  if (!meta && isToday) meta = "сегодня";
+
+  const symList = syms.length
+    ? `<div class="day-sym-list">${syms.map(k => `<span class="day-sym">${esc(SYMPTOM_LABELS[k] ?? k)}</span>`).join("")}</div>`
+    : chk
+      ? `<div class="day-sym-list"><span class="day-sym">всё хорошо</span></div>`
+      : `<div class="muted">${isToday ? "чекина ещё не было" : "чекина не было"}</div>`;
+
+  openSheet(`
+  <h2>${fmt(day)}</h2>
+  ${meta ? `<div class="day-meta">${meta}</div>` : ""}
+  <div class="day-sec-title">Чекин</div>
+  ${symList}
+  ${chk?.note ? `<div class="day-sec-title">Заметка</div><div class="day-note">${esc(chk.note)}</div>` : ""}
+  <div class="act-row" style="margin-top:16px">
+    <button class="act-btn ghost" onclick="ui.closeSheet()">Закрыть</button>
+    ${isToday ? `<button class="act-btn primary" id="dsEdit">Изменить чекин</button>` : ""}
+  </div>`);
+  const edit = document.getElementById("dsEdit");
+  if (edit) edit.onclick = () => {
+    closeSheet();
+    // раскрываем форму чекина на выбранном дне
+    chkDayOffset = Math.max(-2, Math.min(0, Math.round((parseDay(day) - parseDay(st.today)) / DAY)));
+    if (chkDayOffset !== 0) chkSymOpen = true; // прошлые дни — сразу с симптомами (ок-кнопка «сегодня» не о том дне)
+    const tab = document.querySelector('.tab[data-p="p1"]');
+    if (tab) tab.click();
+    setTimeout(() => document.getElementById("chkSymBlock")?.scrollIntoView({ behavior: "smooth", block: "center" }), 160);
+  };
+}
+
+function renderHistory() {
+  const p3 = document.getElementById("p3");
+  const st = state.cycle;
+  if (!st) { p3.innerHTML = ""; return; }
+  const s = st.stats;
+  let summary = `<div class="card"><h2>Сводка</h2>`;
+  if (s.heatsCount === 0) {
+    summary += `<div class="muted">Пока нет записанных течек.</div>`;
+  } else {
+    summary += `<div class="h-row"><span class="h-k">Записанных течек</span><span class="h-v">${s.heatsCount}</span></div>`;
+    if (s.avgDurationDays !== null) summary += `<div class="h-row"><span class="h-k">Средняя длительность</span><span class="h-v">${s.avgDurationDays} дн.</span></div>`;
+    if (s.medianIntervalDays !== null) summary += `<div class="h-row"><span class="h-k">Средний интервал</span><span class="h-v">${s.medianIntervalDays} дн. ${REG_RU[s.regularity] ?? ""}</span></div>`;
+    if (st.nextHeat) summary += `<div class="h-row"><span class="h-k">Следующая течка</span><span class="h-v accent">~ ${fmt(st.nextHeat.expectedOn)}${st.nextHeat.confidence === "high" ? "" : " ±" + st.nextHeat.marginDays}</span></div>`;
+    const sCls = breedSizeClass();
+    if (s.heatsCount <= 2 && sCls) summary += `<div class="h-row"><span class="h-k">Приор по породе</span><span class="h-v">${BREED_SIZE_RU[sCls]}</span></div>`;
+  }
+  summary += `</div>`;
+
+  let list = `<div class="card"><h2>Течки</h2>`;
+  if (!st.heats.length) {
+    list += `<div class="muted">Отметь первую течку на вкладке «Сегодня» или добавь прошлые.</div>`;
+  } else {
+    for (const h of [...st.heats].reverse()) {
+      const open = !h.ended_on;
+      list += `<div class="heat-item">
+        <div>
+          <div>${fmt(h.started_on)}${h.ended_on ? ` — ${fmt(h.ended_on)}` : ""}</div>
+          <div class="muted">${h.durationDays ? h.durationDays + " дн." : "идёт"}${h.intervalToPrev ? ` · интервал ${h.intervalToPrev} дн.` : ""}</div>
+          ${h.note ? `<div class="heat-note">«${esc(h.note)}»</div>` : ""}
+        </div>
+        ${open ? `<span class="open">идёт</span>` : `<button data-hid="${h.started_on}" data-end="${h.ended_on}" class="h-del">удалить</button>`}
+      </div>`;
+    }
+  }
+  list += `</div>
+  <div class="card">
+    <button class="act-btn ghost" style="width:100%" onclick="ui.openBackfill()">＋ Прошлые течки</button>
+    <button class="act-btn ghost" style="width:100%;margin-top:8px" id="vetExport">📋 Сводка для ветеринара</button>
+  </div>`;
+  p3.innerHTML = summary + list;
+  const vetBtn = p3.querySelector("#vetExport");
+  if (vetBtn) vetBtn.onclick = () => openVetSummary();
+  p3.querySelectorAll(".h-del").forEach(b => b.onclick = async () => {
+    if (!confirm("Удалить эту течку?")) return;
+    const target = state.heats.find(h => h.started_on === b.dataset.hid && h.ended_on === b.dataset.end);
+    if (!target) return;
+    await api.call(`/api/dogs/${state.dogId}/heats/${target.id}`, "DELETE");
+    await refreshHeats();
+    await reloadCycle();
+    toast("Удалено");
+  });
+}
+
+// ===== действия =====
+async function reloadCycle() {
+  const cycle = await api.call(`/api/dogs/${state.dogId}/cycle`);
+  state.cycle = cycle.status;
+  render();
+}
+
+async function switchDog(id) {
+  state.dogId = id;
+  state.calMonth = null;
+  chkDayOffset = 0;
+  chkSymOpen = false;
+  await loadDog();
+  render();
+}
+
+function openSheet(html) {
+  document.getElementById("sheet").innerHTML = html;
+  const back = document.getElementById("sheetBack");
+  back.hidden = false;
+  back.classList.remove("closing");
+  // force reflow, чтобы transition фона сработал от прозрачного
+  void back.offsetWidth;
+  back.classList.add("open");
+  if (tg) tg.disableVerticalSwipes?.();
+}
+function closeSheet() {
+  const back = document.getElementById("sheetBack");
+  if (back.hidden) return;
+  back.classList.add("closing");
+  back.classList.remove("open");
+  const onEnd = () => {
+    back.hidden = true;
+    back.classList.remove("closing");
+    back.removeEventListener("transitionend", onEnd);
+  };
+  back.addEventListener("transitionend", onEnd);
+  setTimeout(onEnd, 320); // страховка, если transitionend не придёт
+}
+function toast(text) {
+  const t = document.getElementById("toast");
+  t.textContent = text;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+function esc(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+// защита от двойного тапа: пока запрос идёт, кнопка неактивна и текст «…»
+function once(btn, fn) {
+  btn.disabled = true;
+  const label = btn.textContent;
+  btn.textContent = "Сохраняю…";
+  btn.style.opacity = ".6";
+  Promise.resolve(fn()).finally(() => {
+    btn.disabled = false;
+    btn.textContent = label;
+    btn.style.opacity = "";
+  });
+}
+
+function openAddDog(fromPlus) {
+  openSheet(`
+  <h2>${fromPlus ? "Новая собака" : "Первая собака"}</h2>
+  <div class="field"><label>Кличка *</label><input id="ndName" maxlength="50" placeholder="например, Дейзи"></div>
+  <div class="field"><label>Порода</label><input id="ndBreed" maxlength="50" placeholder="необязательно"></div>
+  <div class="field"><label>Дата рождения</label><input id="ndBirth" type="date">
+    <div class="hint">нужна для подсказки «пора бы первой течке»</div></div>
+  <div class="field"><label>Дата начала последней течки</label><input id="ndHeat" type="date">
+    <div class="hint">если помнишь — прогноз заработает сразу</div></div>
+  <div class="act-row">
+    <button class="act-btn ghost" onclick="ui.closeSheet()">Отмена</button>
+    <button class="act-btn primary" id="ndSave">Добавить</button>
+  </div>`);
+  document.getElementById("ndSave").onclick = function () {
+    const btn = this;
+    if (btn.disabled) return;
+    once(btn, async () => {
+      const name = document.getElementById("ndName").value.trim();
+      if (!name) { toast("Введите кличку"); return; }
+      const body = { name, breed: document.getElementById("ndBreed").value.trim() || undefined, birth_date: document.getElementById("ndBirth").value || undefined };
+      const r = await api.call("/api/dogs", "POST", body);
+      if (!r.ok) { toast("Не получилось: " + (r.error ?? "")); return; }
+      state.dogId = r.dog.id;
+      state.dogs = (await api.call("/api/dogs")).dogs ?? [];
+      const heat = document.getElementById("ndHeat").value;
+      if (heat) {
+        const hr = await api.call(`/api/dogs/${state.dogId}/heats`, "POST", { started_on: heat });
+        if (hr.ok) toast("Собака добавлена, течка отмечена ✓");
+        else toast("Собака добавлена ✓ (течь не отметилась: " + (hr.error ?? "") + ")");
+      } else toast("Собака добавлена ✓");
+      closeSheet();
+      await loadDog(); show("main"); render();
+    });
+  };
+}
+
+function openBackfill() {
+  openSheet(`
+  <h2>Прошлые течки</h2>
+  <div class="muted" style="margin:-8px 0 12px">Впиши прошлые циклы, какие помнишь — хотя бы даты начала. Каждый цикл уточняет прогноз.</div>
+  <div id="bfRows"></div>
+  <button class="act-btn ghost" style="width:100%;margin-top:4px" onclick="ui.addBfRow()">＋ ещё течка</button>
+  <div class="act-row" style="margin-top:14px">
+    <button class="act-btn ghost" onclick="ui.closeSheet()">Отмена</button>
+    <button class="act-btn primary" id="bfSave">Сохранить</button>
+  </div>`);
+  addBfRow();
+  document.getElementById("bfSave").onclick = function () {
+    if (this.disabled) return;
+    once(this, async () => {
+      const rows = [...document.querySelectorAll("#bfRows .bf-row")];
+      const heats = [];
+      for (const r of rows) {
+        const s = r.querySelector(".bf-start").value;
+        if (!s) continue;
+        const e = r.querySelector(".bf-end").value || null;
+        heats.push({ started_on: s, ended_on: e });
+      }
+      if (!heats.length) { closeSheet(); return; }
+      const res = await api.call(`/api/dogs/${state.dogId}/heats/backfill`, "POST", { heats });
+      if (res.ok) { toast("Прошлые течки добавлены ✓"); closeSheet(); await refreshHeats(); await reloadCycle(); }
+      else toast("Не получилось: " + (res.error ?? ""));
+    });
+  };
+}
+function addBfRow() {
+  const div = document.createElement("div");
+  div.className = "bf-row";
+  div.style.cssText = "display:flex;gap:8px;margin-bottom:10px";
+  div.innerHTML = `<input type="date" class="bf-start" style="flex:1.2"><input type="date" class="bf-end" style="flex:1.2"><button class="hbtn" style="flex:none">×</button>`;
+  div.querySelector("button").onclick = () => div.remove();
+  document.getElementById("bfRows").appendChild(div);
+}
+
+function startHeat() {
+  openSheet(`
+  <h2>Началась течка</h2>
+  <div class="q-sub" style="margin:-6px 0 12px">признаки: капли крови на полу/подстилке, петля набухла, чаще вылизывается, чаще ходит в туалет «по-маленькому», кобели начали интересоваться</div>
+  <div class="field"><label>Дата начала *</label><input id="shDate" type="date" value="${state.today}"></div>
+  <div class="field"><label>Заметка</label><input id="shNote" maxlength="500" placeholder="необязательно"></div>
+  <div class="act-row">
+    <button class="act-btn ghost" onclick="ui.closeSheet()">Отмена</button>
+    <button class="act-btn primary" id="shSave">Отметить</button>
+  </div>`);
+  document.getElementById("shSave").onclick = function () {
+    if (this.disabled) return;
+    once(this, async () => {
+      const d = document.getElementById("shDate").value;
+      if (!d) { toast("Выберите дату"); return; }
+      const r = await api.call(`/api/dogs/${state.dogId}/heats`, "POST", { started_on: d, note: document.getElementById("shNote").value.trim() || undefined });
+      if (r.ok) { toast("Течка отмечена ✓"); closeSheet(); await refreshHeats(); await reloadCycle(); }
+      else toast(r.error === "heat already open" ? "Течка уже открыта" : "Не получилось: " + (r.error ?? ""));
+    });
+  };
+}
+
+function endHeat() {
+  openSheet(`
+  <h2>Течка закончилась</h2>
+  <div class="field"><label>Дата окончания *</label><input id="ehDate" type="date" value="${state.today}"></div>
+  <div class="act-row">
+    <button class="act-btn ghost" onclick="ui.closeSheet()">Отмена</button>
+    <button class="act-btn primary" id="ehSave">Закрыть течку</button>
+  </div>`);
+  document.getElementById("ehSave").onclick = function () {
+    if (this.disabled) return;
+    once(this, async () => {
+      const d = document.getElementById("ehDate").value;
+      if (!d) { toast("Выберите дату"); return; }
+      const openHeat = state.heats.find(h => !h.ended_on);
+      if (!openHeat) { closeSheet(); return; }
+      const r = await api.call(`/api/dogs/${state.dogId}/heats/${openHeat.id}`, "PATCH", { ended_on: d });
+      if (r.ok) { toast("Готово ✓"); closeSheet(); await refreshHeats(); await reloadCycle(); }
+      else toast("Не получилось: " + (r.error ?? ""));
+    });
+  };
+}
+
+function cancelHeat() {
+  openSheet(`
+  <h2>Отменить течку</h2>
+  <div class="q-sub" style="margin:-6px 0 12px">Если отметили по ошибке — течка удалится целиком, чекины останутся.</div>
+  <div class="act-row">
+    <button class="act-btn ghost" onclick="ui.closeSheet()">Назад</button>
+    <button class="act-btn primary" id="chSave">Удалить течку</button>
+  </div>`);
+  document.getElementById("chSave").onclick = function () {
+    if (this.disabled) return;
+    once(this, async () => {
+      const openHeat = state.heats.find(h => !h.ended_on);
+      if (!openHeat) { closeSheet(); return; }
+      const r = await api.call(`/api/dogs/${state.dogId}/heats/${openHeat.id}`, "DELETE");
+      if (r.ok) { toast("Течка отменена ✓"); closeSheet(); await refreshHeats(); await reloadCycle(); }
+      else toast("Не получилось: " + (r.error ?? ""));
+    });
+  };
+}
+
+function openEditDog() {
+  const dog = state.dogs.find(d => d.id === state.dogId);
+  if (!dog) return;
+  openSheet(`
+  <h2>Профиль собаки</h2>
+  <div class="field"><label>Фото</label>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="dog-avatar" id="edAvatarPrev" style="width:56px;height:56px;font-size:26px">${dog.has_avatar ? `<img id="edAvatarImg" src="${avatarUrlFor(dog.id)}" alt="">` : dogEmoji(dog)}</div>
+      <div>
+        <input type="file" id="edPhoto" accept="image/*" style="display:none">
+        <button class="act-btn ghost" id="edPhotoBtn" style="padding:6px 14px;font-size:13px">Выбрать фото</button>
+        ${dog.has_avatar ? `<button class="act-btn ghost" id="edPhotoDel" style="padding:6px 14px;font-size:13px;margin-left:6px">Убрать</button>` : ""}
+        <div class="hint" style="margin-top:4px">снимок мордой в профиль смотрится лучше всего</div>
+      </div>
+    </div>
+  </div>
+  <div class="field"><label>Кличка *</label><input id="edName" maxlength="50" value="${esc(dog.name)}"></div>
+  <div class="field"><label>Порода</label><input id="edBreed" maxlength="50" value="${esc(dog.breed ?? "")}"></div>
+  <div class="field"><label>Дата рождения</label><input id="edBirth" type="date" value="${dog.birth_date ?? ""}"></div>
+  <div class="field"><label>Вес (кг)</label><input id="edWeight" type="number" min="2" max="90" step="0.5" inputmode="decimal" value="${dog.weight_grams ? (dog.weight_grams / 1000).toLocaleString("ru-RU") : ""}" placeholder="необязательно">
+    <div class="hint">если порода не распознаётся — вес задаёт норму цикла (до 10 / 25 / 45 кг)</div></div>
+  <div class="act-row">
+    <button class="act-btn ghost" onclick="ui.closeSheet()">Отмена</button>
+    <button class="act-btn primary" id="edSave">Сохранить</button>
+  </div>`);
+  let pickedFile = null; // выбранный файл: уйдёт с «Сохранить»
+  const edImg = document.getElementById("edAvatarImg");
+  if (edImg) edImg.onerror = () => { edImg.remove(); document.getElementById("edAvatarPrev").textContent = dogEmoji(dog); };
+  document.getElementById("edPhotoBtn").onclick = () => document.getElementById("edPhoto").click();
+  document.getElementById("edPhoto").onchange = function () {
+    pickedFile = this.files?.[0] ?? null;
+    if (!pickedFile) return;
+    if (pickedFile.size > 15 * 1024 * 1024) { toast("Слишком большой файл"); pickedFile = null; return; }
+    // превью сразу, квадрат 256px
+    squareThumb(pickedFile, 256).then(({ blob, dataUrl }) => {
+      const prev = document.getElementById("edAvatarPrev");
+      prev.innerHTML = `<img src="${dataUrl}" alt="">`;
+      pickedFile = blob; // сохраняем уже обработанный квадрат
+    }).catch(() => toast("Не получилось прочитать фото"));
+  };
+  const delBtn = document.getElementById("edPhotoDel");
+  if (delBtn) delBtn.onclick = () => {
+    api.call(`/api/dogs/${state.dogId}/avatar`, "DELETE").then(r => {
+      if (r.ok) {
+        const d = state.dogs.find(x => x.id === state.dogId);
+        if (d) d.has_avatar = 0;
+        pickedFile = null;
+        const prev = document.getElementById("edAvatarPrev");
+        if (prev) prev.innerHTML = dogEmoji(d ?? {});
+        toast("Фото убрано ✓");
+        render();
+      } else toast("Не получилось: " + (r.error ?? ""));
+    });
+  };
+  document.getElementById("edSave").onclick = function () {
+    if (this.disabled) return;
+    once(this, async () => {
+      const name = document.getElementById("edName").value.trim();
+      if (!name) { toast("Введите кличку"); return; }
+      const body = { name };
+      const breed = document.getElementById("edBreed").value.trim();
+      const birth = document.getElementById("edBirth").value;
+      const weightRaw = document.getElementById("edWeight").value.replace(",", ".").trim();
+      const weightKg = weightRaw === "" ? null : Number(weightRaw);
+      if (weightKg !== null && (!Number.isFinite(weightKg) || weightKg < 2 || weightKg > 90)) {
+        toast("Вес: от 2 до 90 кг"); return;
+      }
+      const weightGrams = weightKg === null ? null : Math.round(weightKg * 1000);
+      if (breed !== (dog.breed ?? "")) body.breed = breed || null;
+      if (birth !== (dog.birth_date ?? "")) body.birth_date = birth || null;
+      if (weightGrams !== (dog.weight_grams ?? null)) body.weight_grams = weightGrams;
+      // аватар грузим до сохранения профиля: ошибка фото не теряет текст
+      let avatarErr = "";
+      if (pickedFile instanceof Blob) {
+        const up = await uploadAvatar(pickedFile);
+        if (up.ok) {
+          const d = state.dogs.find(x => x.id === state.dogId);
+          if (d) { d.has_avatar = 1; d.avatar_updated_at = new Date().toISOString(); }
+        } else avatarErr = up.error ?? "";
+      }
+      const r = await api.call(`/api/dogs/${state.dogId}`, "PATCH", body);
+      if (r.ok) {
+        state.dogs = (await api.call("/api/dogs")).dogs ?? [];
+        toast(avatarErr ? "Сохранено, но фото не загрузилось: " + avatarErr : "Сохранено ✓");
+        closeSheet(); render();
+      }
+      else toast("Не получилось: " + (r.error ?? ""));
+    });
+  };
+}
+
+// Фото → квадрат 256px (центр-кроп): canvas → Blob + dataURL. WebP при поддержке, иначе JPEG.
+function squareThumb(file, size) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const c = document.createElement("canvas");
+        c.width = size; c.height = size;
+        const side = Math.min(img.width, img.height);
+        c.getContext("2d").drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
+        c.toBlob(b => {
+          if (!b) { // очень старые вебвю без toBlob
+            const dataUrl = c.toDataURL("image/jpeg", 0.85);
+            resolve({ blob: dataUrltoBlob(dataUrl), dataUrl });
+            return;
+          }
+          const fr = new FileReader();
+          fr.onload = () => resolve({ blob: b, dataUrl: fr.result });
+          fr.onerror = reject;
+          fr.readAsDataURL(b);
+        }, "image/webp", 0.85);
+      } catch (e) { reject(e); }
+    };
+    img.onerror = () => reject(new Error("bad image"));
+    img.src = URL.createObjectURL(file);
+  });
+}
+function dataUrltoBlob(dataUrl) {
+  const [head, b64] = dataUrl.split(",");
+  const mime = /data:(.*?);/.exec(head)?.[1] ?? "image/jpeg";
+  return new Blob([Uint8Array.from(atob(b64), c => c.charCodeAt(0))], { type: mime });
+}
+async function uploadAvatar(blob) {
+  const b64 = await new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(String(fr.result).split(",")[1]);
+    fr.onerror = rej;
+    fr.readAsDataURL(blob);
+  });
+  return api.call(`/api/dogs/${state.dogId}/avatar`, "PUT", { mime: blob.type, data_b64: b64 });
+}
+
+function openGuide() {
+  openSheet(`
+  <h2>Про течку — коротко</h2>
+  <div class="field"><label>Слова, которые встречаются в приложении</label>
+    <div class="q-sub" style="margin:0"><b>Проэструс</b> — начало течки, примерно первые 7–9 дней. Петля набухает, выделения тёмные, кобели уже заинтересованы, но сама собака ещё не подпускает.<br><br>
+    <b>Охота (эструс)</b> — середина течки, ~9 дней. Выделения светлеют, собака «отводит хвост» и подпускает кобелей — единственное окно, когда возможна вязка. В приложении называется «окно охоты».<br><br>
+    <b>Поздняя течка</b> — выделения почти пропали, интерес кобелей угасает. Ещё пара недель осторожности на прогулках.<br><br>
+    <b>Петля</b> — наружная часть половых органов суки, «вульва». Набухание и размягчение петли — один из главных признаков начала; уменьшение — что течка заканчивается.<br><br>
+    <b>Ложная щенность</b> — состояние через 1–2 месяца после течки: железы набухают, собака устраивает «гнездо», может появиться молоко. Гормональная норма, обычно проходит сама.<br><br>
+    <b>Пиометра</b> — гнойное воспаление матки, серьёзная угроза жизни. Бывает с гнойными выделениями и БЕЗ них (тогда выдают жажда + отказ от еды + вялость). Лечится, но время критично — при таких признаках к ветеринару не откладывая.</div></div>
+  <div class="field"><label>Как понять, что началась</label>
+    <div class="q-sub" style="margin:0">Капли крови на полу или подстилке, петля набухла, собака чаще вылизывается и чаще ходит по-маленькому, кобели начинают интересоваться. У некоторых выделений почти нет («тихая течка») — тогда ориентир поведение и петля.</div></div>
+  <div class="field"><label>Как понять, что закончилась</label>
+    <div class="q-sub" style="margin:0">Выделения светлеют и почти пропадают, петля уменьшается. Но кобели могут интересоваться ещё несколько дней — пару недель лучше держать на поводке «на всякий случай».</div></div>
+  <div class="field"><label>Пока идёт течка</label>
+    <div class="q-sub" style="margin:0">Всегда поводок, даже если обычно слушается. Обходить площадки и места общего выгула. Предупреждать владельцев кобелей издалека. Не ругать за лужи и «промахи». Не нагружать тренировками. Трусики — по желанию, если не терпит: не снимайте с прогулки «на всякий случай» от чужого кобеля.</div></div>
+  <div class="field"><label>После течки</label>
+    <div class="q-sub" style="margin:0">Через 1–2 месяца у некоторых сук бывает «ложная щенность»: набухают железы, собака возится с «гнездом», иногда появляется молоко. Обычно само проходит; если молока много или собака вялая и не ест — к ветеринару. Внимание: не сцеживайте молоко сами — это только поддерживает лактацию. Гнойные выделения из петли — повод попасть к ветеринару быстро: так может проявляться пиометра. Но пиометра бывает и БЕЗ выделений: сочетание «много пьёт + не ест + вялая» через 2–8 недель после течки — тоже причина показаться врачу, не откладывая.</div></div>
+  <div class="field"><label>Когда к ветеринару</label>
+    <div class="q-sub" style="margin:0">Признаки течки дольше месяца · нет течки дольше 12–13 мес у взрослой · первая течка не наступила к 18–24 мес (позже — к вету) · гнойные выделения с запахом · после течки много пьёт + не ест + вялая (это может быть пиометра даже БЕЗ выделений — не ждите, покажите сразу).</div></div>
+  <div class="act-row">
+    <button class="act-btn primary" onclick="ui.closeSheet()">Понятно</button>
+  </div>`);
+}
+
+function openNotify() {
+  const n = state.notify;
+  openSheet(`
+  <h2>Уведомления</h2>
+  <div class="toggle-row">
+    <div><div class="t-label">Напоминать о цикле</div><div class="t-sub">текучка не помешает — это opt-in</div></div>
+    <label class="switch"><input type="checkbox" id="ntfEnabled" ${n.enabled ? "checked" : ""}><span class="knob"></span></label>
+  </div>
+  <div class="toggle-row">
+    <div><div class="t-label">«Ожидается течка за N дней»</div>
+      <div class="t-sub">за сколько предупредить:
+        <select id="ntfDays" style="border:1px solid #eadfe4;border-radius:8px;padding:2px 6px;font:inherit;font-size:12px">
+          ${[3, 5, 7, 10, 14].map(d => `<option value="${d}" ${n.advance_days === d ? "selected" : ""}>${d} дн.</option>`).join("")}
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="toggle-row">
+    <div><div class="t-label">«Похоже, началась — отметь?»</div><div class="t-sub">в расчётную дату начала</div></div>
+    <label class="switch"><input type="checkbox" id="ntfDay" ${n.day_of_heat ? "checked" : ""}><span class="knob"></span></label>
+  </div>
+  <div class="toggle-row">
+    <div><div class="t-label">Напоминание о чекине</div><div class="t-sub">в дни течки, если ещё не отметила</div></div>
+    <label class="switch"><input type="checkbox" id="ntfChk" ${n.checkin_reminder ? "checked" : ""}><span class="knob"></span></label>
+  </div>
+  <div class="act-row" style="margin-top:14px">
+    <button class="act-btn ghost" onclick="ui.closeSheet()">Закрыть</button>
+    <button class="act-btn primary" id="ntfSave">Сохранить</button>
+  </div>`);
+  document.getElementById("ntfSave").onclick = function () {
+    if (this.disabled) return;
+    once(this, async () => {
+      const notify = {
+        enabled: document.getElementById("ntfEnabled").checked,
+        advance_days: +document.getElementById("ntfDays").value,
+        day_of_heat: document.getElementById("ntfDay").checked,
+        checkin_reminder: document.getElementById("ntfChk").checked,
+      };
+      const r = await api.call("/api/me/notify", "PUT", { notify });
+      if (r.ok) { state.notify = r.notify; toast("Настройки сохранены ✓"); closeSheet(); }
+      else toast("Не получилось: " + (r.error ?? ""));
+    });
+  };
+}
+
+// Сводка для ветеринара: история циклов, интервалы, симптомы — текстом, который можно
+// переслать из мини-аппа в чат/сохранить. Терпимо к пустой истории.
+function vetSummaryText() {
+  const st = state.cycle;
+  const dog = state.dogs.find(d => d.id === state.dogId) ?? {};
+  const lines = [];
+  lines.push(`Cavalla — история циклов собаки`);
+  const who = [dog.name, dog.breed, dog.birth_date ? `р. ${dog.birth_date}` : null].filter(Boolean).join(" · ");
+  lines.push(who || "собака");
+  lines.push(`на ${fmt(st.today)}:`);
+  lines.push("");
+  if (!st.heats.length) {
+    lines.push("Течек пока не записано.");
+  } else {
+    lines.push(`Всего течок: ${st.stats.heatsCount}`);
+    if (st.stats.avgDurationDays !== null) lines.push(`Средняя длительность: ${st.stats.avgDurationDays} дн.`);
+    if (st.stats.medianIntervalDays !== null) {
+      const reg = REG_RU[st.stats.regularity];
+      lines.push(`Средний интервал: ${st.stats.medianIntervalDays} дн.${reg ? ` (${reg})` : ""}`);
+    }
+    lines.push("");
+    lines.push("Течки:");
+    for (const h of st.heats) {
+      const dur = h.ended_on ? ` — ${h.ended_on} (${h.durationDays} дн.)` : " — идёт сейчас";
+      const ivl = h.intervalToPrev ? `, интервал ${h.intervalToPrev} дн.` : "";
+      const note = h.note ? ` — «${h.note}»` : "";
+      lines.push(`  ${h.started_on}${dur}${ivl}${note}`);
+    }
+    if (st.inHeat && st.openHeat) {
+      lines.push("");
+      lines.push(`Сейчас ${st.openHeat.day}-й день течки (фаза: ${PHASE_RU[st.openHeat.phase]}), окно охоты ${st.openHeat.estrusWindow.from} — ${st.openHeat.estrusWindow.to}.`);
+    }
+    if (st.nextHeat && !st.inHeat) {
+      lines.push("");
+      lines.push(`Прогноз следующей: ~${st.nextHeat.expectedOn} (окно ${st.nextHeat.from} — ${st.nextHeat.to}).`);
+    }
+  }
+  // чекины за последние 60 дней: симптомы с сюжетом (выделения, жажда, аппетит)
+  const from60 = iso(parseDay(st.today) - 60 * DAY);
+  const days = Object.keys(state.checkins).filter(d => d >= from60 && d <= st.today).sort();
+  if (days.some(d => (state.checkins[d].symptoms ?? []).length)) {
+    lines.push("");
+    lines.push("Дневник симптомов (последние 60 дн.):");
+    for (const d of days) {
+      const c = state.checkins[d];
+      if (!c.symptoms.length) continue;
+      const labels = c.symptoms.map(k => SYMPTOM_LABELS[k] ?? k).join(", ");
+      lines.push(`  ${d}: ${labels}${c.note ? ` — ${c.note}` : ""}`);
+    }
+  }
+  // активные тревоги — самое важное для вета
+  if (st.alerts.length) {
+    lines.push("");
+    lines.push("Отметки Cavalla:");
+    for (const a of st.alerts) lines.push(`  ⚠ ${ALERT_RU[a.kind]?.(a) ?? a.kind}`);
+  }
+  lines.push("");
+  lines.push("Записано владельцем по наблюдениям, без диагностики.");
+  return lines.join("\n");
+}
+
+function openVetSummary() {
+  const text = vetSummaryText();
+  openSheet(`
+  <h2>Сводка для ветеринара</h2>
+  <div class="muted" style="margin:-8px 0 12px">история циклов, интервалы и дневник симптомов — можно переслать врачу в чат</div>
+  <textarea class="note-field" id="vetText" rows="14" readonly style="font-size:12.5px;line-height:1.5">${esc(text)}</textarea>
+  <div class="act-row" style="margin-top:14px">
+    <button class="act-btn ghost" onclick="ui.closeSheet()">Закрыть</button>
+    <button class="act-btn primary" id="vetCopy">Скопировать</button>
+  </div>`);
+  document.getElementById("vetCopy").onclick = function () {
+    const btn = this;
+    if (btn.disabled) return;
+    once(btn, async () => {
+      const ta = document.getElementById("vetText");
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch { ok = false; }
+      if (!ok && navigator.clipboard?.writeText) {
+        try { await navigator.clipboard.writeText(ta.value); ok = true; } catch { ok = false; }
+      }
+      toast(ok ? "Скопировано ✓ — вставь в чат врачу" : "Выдели текст и скопируй вручную");
+    });
+  };
+}
+
+
+// вкладки
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x === t));
+  document.querySelectorAll(".pane").forEach(p => p.classList.toggle("active", p.id === t.dataset.p));
+}));
+
+// экспорт для inline-onclick
+window.ui = { openAddDog, openEditDog, openBackfill, addBfRow, startHeat, endHeat, cancelHeat, openNotify, openGuide, closeSheet, openVetSummary };
+
+loadAll().catch(e => {
+  if (state.authFailed || !inTelegram) {
+    document.getElementById("loader").textContent = "Это приложение открывается из Telegram: напиши боту @cavalla1_bot и нажми «🐶 Открыть Cavalla».";
+  } else {
+    document.getElementById("loader").textContent = "Ошибка загрузки: " + esc(e.message);
+  }
+});
+</script>
+</body>
+</html>

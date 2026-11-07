@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cavalla — чекин: скетч</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #3d2b33; background: #f8f2ed; line-height: 1.5;
+  }
+  .wrap { max-width: 430px; margin: 0 auto; padding: 18px 16px 40px; }
+  .hint {
+    max-width: 430px; margin: 0 auto 12px; font-size: 11.5px; color: #b08e97;
+    text-align: center; text-transform: uppercase; letter-spacing: .08em;
+  }
+  .card {
+    background: #fff; border-radius: 20px; padding: 18px;
+    box-shadow: 0 4px 16px rgba(61,43,51,.06); margin-bottom: 14px;
+  }
+
+  /* ==== Вариант A: «Всё хорошо» большой кнопкой, симптомы свёрнуты ==== */
+  .vA .c-head { display: flex; align-items: baseline; justify-content: space-between; }
+  .vA .c-title { font-size: 15px; font-weight: 700; }
+  .vA .c-sub { font-size: 12px; color: #a08a91; margin: 3px 0 14px; }
+  .vA .day-switch { font-size: 12px; color: #a08a91; white-space: nowrap; }
+  .vA .day-switch button {
+    border: 1px solid #eadfe4; background: #fff; color: #a08a91;
+    border-radius: 8px; width: 24px; height: 22px; cursor: pointer; font-family: inherit; line-height: 1;
+  }
+  .vA .ok-btn {
+    width: 100%; border: none; border-radius: 14px; padding: 14px;
+    background: #7fbf9a; color: #fff; font-size: 15px; font-weight: 600;
+    cursor: pointer; font-family: inherit; box-shadow: 0 3px 10px rgba(127,191,154,.35);
+  }
+  .vA .ok-btn:active { transform: scale(.98); }
+  .vA .ok-btn .ok-sub { display: block; font-weight: 400; font-size: 11px; opacity: .9; margin-top: 2px; }
+  .vA .sym-toggle {
+    width: 100%; border: none; background: none; color: #a08a91; font-size: 12.5px;
+    padding: 12px 0 4px; cursor: pointer; font-family: inherit;
+  }
+  .vA .sym-toggle .tt { color: #d4586e; font-weight: 600; }
+  .vA .grp { margin-top: 10px; }
+  .vA .grp-title { font-size: 12px; font-weight: 600; color: #7a656d; margin-bottom: 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    border: 1.5px solid #eadfe4; background: #fff; color: #7a656d;
+    border-radius: 999px; padding: 7px 14px; font-size: 13px; cursor: pointer;
+    font-family: inherit; transition: all .15s;
+  }
+  .chip.on { background: #e8607a; border-color: #e8607a; color: #fff; }
+  .chip.warn { border-color: #e6b8c0; color: #a4424f; }
+  .chip.warn.on { background: #a4424f; border-color: #a4424f; }
+  .vA .save-btn {
+    margin-top: 14px; width: 100%; border: none; border-radius: 14px;
+    background: #e8607a; color: #fff; font-size: 15px; font-weight: 600;
+    padding: 13px; cursor: pointer; font-family: inherit; opacity: .45; transition: opacity .2s;
+  }
+  .vA .save-btn.ready { opacity: 1; }
+  .note-link {
+    border: none; background: none; color: #a08a91; font-size: 12.5px;
+    cursor: pointer; font-family: inherit; padding: 0; margin-top: 10px;
+  }
+
+  /* ==== Вариант B: две кнопки «Норм» / «Есть симптомы» ==== */
+  .vB .c-head { display: flex; align-items: baseline; justify-content: space-between; }
+  .vB .c-title { font-size: 15px; font-weight: 700; }
+  .vB .c-sub { font-size: 12px; color: #a08a91; margin: 3px 0 14px; }
+  .vB .pair { display: flex; gap: 10px; }
+  .vB .pair .ok-btn {
+    flex: 1.2; border: none; border-radius: 14px; padding: 13px 8px;
+    background: #7fbf9a; color: #fff; font-size: 14.5px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .vB .pair .sym-btn {
+    flex: 1; border: 1.5px solid #eadfe4; border-radius: 14px; padding: 13px 8px;
+    background: #fff; color: #7a656d; font-size: 14.5px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+
+  /* ==== Записанное состояние (после сохранения, оба варианта) ==== */
+  .done .d-row { display: flex; align-items: center; gap: 10px; }
+  .done .d-ok {
+    width: 34px; height: 34px; border-radius: 50%; background: #e5f3ea; color: #3e8f63;
+    display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+  }
+  .done .d-main { flex: 1; }
+  .done .d-title { font-size: 14px; font-weight: 600; }
+  .done .d-sub { font-size: 12px; color: #a08a91; }
+  .done .d-impact { font-size: 12.5px; color: #c14b62; margin: 8px 0 0 44px; }
+  .done .d-impact::before { content: "↳ "; }
+  .done .d-edit {
+    border: none; background: #f6efe9; color: #7a656d; border-radius: 999px;
+    padding: 7px 14px; font-size: 12.5px; cursor: pointer; font-family: inherit;
+  }
+
+  /* ==== Стрик ==== */
+  .streak { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  .streak .s-flames { display: flex; gap: 4px; }
+  .streak .s-dot {
+    width: 26px; height: 8px; border-radius: 4px; background: #f3e8e0;
+  }
+  .streak .s-dot.on { background: linear-gradient(90deg, #f0a587, #e8607a); }
+  .streak .s-label { font-size: 11.5px; color: #a08a91; }
+  .streak .s-label b { color: #c14b62; }
+</style>
+</head>
+<body>
+
+<div class="hint">A · «всё хорошо» большой кнопкой, симптомы вторым слоем</div>
+<div class="wrap vA">
+  <div class="card" id="aCard">
+    <div class="c-head">
+      <div class="c-title">Как Дейзи сегодня?</div>
+      <div class="day-switch">день&nbsp; <button>‹</button> <b>сегодня</b> <button>›</button></div>
+    </div>
+    <div class="c-sub">день 5 течки · проэструс</div>
+
+    <button class="ok-btn" id="okBtn">Всё хорошо<span class="ok-sub">выделений нет, самочувствие в норме</span></button>
+
+    <button class="sym-toggle" id="symToggle">Есть что отметить — <span class="tt">симптомы</span></button>
+
+    <div id="symBlock" hidden>
+      <div class="grp">
+        <div class="grp-title">Выделения</div>
+        <div class="chips">
+          <button class="chip">тёмные</button>
+          <button class="chip">светлые</button>
+          <button class="chip warn">гнойные</button>
+        </div>
+      </div>
+      <div class="grp">
+        <div class="grp-title">Поведение</div>
+        <div class="chips">
+          <button class="chip">ластится к кобелям</button>
+          <button class="chip">отводит хвост</button>
+          <button class="chip">беспокойная</button>
+        </div>
+      </div>
+      <div class="grp">
+        <div class="grp-title">Самочувствие</div>
+        <div class="chips">
+          <button class="chip">петля увеличена</button>
+          <button class="chip">ест меньше</button>
+          <button class="chip">много пьёт</button>
+        </div>
+      </div>
+      <button class="note-link">+ заметка на день…</button>
+      <button class="save-btn ready">Записать день</button>
+    </div>
+  </div>
+
+  <!-- записанное состояние варианта A -->
+  <div class="card done" id="aDone" hidden>
+    <div class="d-row">
+      <div class="d-ok">✓</div>
+      <div class="d-main">
+        <div class="d-title">Всё хорошо</div>
+        <div class="d-sub">записано · сегодня</div>
+      </div>
+      <button class="d-edit">Изменить</button>
+    </div>
+    <div class="d-impact">окно охоты сдвинуто к дню симптома · прогноз стал точнее</div>
+    <div class="streak">
+      <div class="s-flames">
+        <div class="s-dot on"></div><div class="s-dot on"></div><div class="s-dot on"></div>
+        <div class="s-dot on"></div><div class="s-dot on"></div><div class="s-dot on"></div>
+        <div class="s-dot on"></div><div class="s-dot"></div><div class="s-dot"></div>
+      </div>
+      <div class="s-label"><b>7 дней подряд</b> · 12 из 16 последних</div>
+    </div>
+  </div>
+</div>
+
+<div class="hint" style="margin-top:26px">B · две кнопки, выбор первым жестом</div>
+<div class="wrap vB">
+  <div class="card">
+    <div class="c-head">
+      <div class="c-title">Как Дейзи сегодня?</div>
+      <div class="day-switch">день&nbsp; <button>‹</button> <b>сегодня</b> <button>›</button></div>
+    </div>
+    <div class="c-sub">день 5 течки · проэструс</div>
+    <div class="pair">
+      <button class="ok-btn">Всё хорошо</button>
+      <button class="sym-btn" onclick="this.closest('.card').querySelector('#symBlockB').hidden = false">Есть симптомы</button>
+    </div>
+    <div id="symBlockB" hidden>
+      <div class="grp" style="margin-top:12px">
+        <div class="grp-title">Выделения</div>
+        <div class="chips">
+          <button class="chip">тёмные</button>
+          <button class="chip">светлые</button>
+          <button class="chip warn">гнойные</button>
+        </div>
+      </div>
+      <button class="save-btn ready" style="margin-top:12px">Записать день</button>
+    </div>
+  </div>
+</div>
+
+<div class="hint" style="margin-top:26px">вне течки — набор сам меняется</div>
+<div class="wrap vA">
+  <div class="card">
+    <div class="c-head">
+      <div class="c-title">Как Дейзи сегодня?</div>
+      <div class="day-switch">день&nbsp; <button>‹</button> <b>сегодня</b> <button>›</button></div>
+    </div>
+    <div class="c-sub">между циклами · до окна прогноза 34 дн.</div>
+
+    <button class="ok-btn">Всё хорошо<span class="ok-sub">наблюдения между циклами — так узнаем её норму</span></button>
+
+    <button class="sym-toggle" onclick="this.nextElementSibling.hidden = false">Есть что отметить — <span class="tt">симптомы</span></button>
+    <div hidden>
+      <div class="grp" style="margin-top:10px">
+        <div class="grp-title">Выделения</div>
+        <div class="chips">
+          <button class="chip warn">гнойные</button>
+        </div>
+      </div>
+      <div class="grp">
+        <div class="grp-title">Поведение и самочувствие</div>
+        <div class="chips">
+          <button class="chip">беспокойная</button>
+          <button class="chip">ест меньше</button>
+          <button class="chip">много пьёт</button>
+          <button class="chip">гнездование</button>
+          <button class="chip">молоко / железы</button>
+          <button class="chip">петля набухла</button>
+        </div>
+      </div>
+      <button class="note-link">+ заметка на день…</button>
+      <button class="save-btn ready">Записать день</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // интерактив скетча
+  const ok = document.getElementById('okBtn');
+  ok.addEventListener('click', () => {
+    document.getElementById('aCard').hidden = true;
+    const d = document.getElementById('aDone');
+    d.hidden = false;
+    setTimeout(() => {
+      d.hidden = true;
+      document.getElementById('aCard').hidden = false;
+    }, 2600);
+  });
+  const st = document.getElementById('symToggle');
+  const sb = document.getElementById('symBlock');
+  st.addEventListener('click', () => { sb.hidden = !sb.hidden; st.innerHTML = sb.hidden
+    ? 'Есть что отметить — <span class="tt">симптомы</span>'
+    : 'скрыть симптомы'; });
+</script>
+</body>
+</html>

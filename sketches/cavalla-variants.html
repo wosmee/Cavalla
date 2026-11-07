@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cavalla — 3 варианта дизайна</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: #23252b; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #23252b; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding-bottom: 30px;
+  }
+  h1 { color: #fff; font-size: 17px; font-weight: 600; margin: 18px 0 4px; }
+  .sub { color: #9aa0aa; font-size: 12.5px; margin-bottom: 12px; text-align: center; padding: 0 20px; }
+  .vtabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; padding: 0 12px 14px; }
+  .vtab {
+    border: 1px solid #3a3e46; background: #2b2f36; color: #c9cdd4;
+    border-radius: 999px; padding: 10px 18px; font-size: 14px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .vtab.active { background: #ff7a8f; border-color: #ff7a8f; color: #23141a; }
+  .vwrap { width: 420px; max-width: 100vw; display: none; }
+  .vwrap.active { display: block; }
+  /* Вариант 1 · Кольцо */
+#v1, #v1 * { box-sizing: border-box; margin: 0; padding: 0; }
+#v1 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #3d2b33;
+    background: #efe7dd;
+    line-height: 1.5;
+  }
+#v1 .phone {
+    max-width: 420px; margin: 0 auto; min-height: 100vh;
+    background: #faf6f1;
+    box-shadow: 0 0 40px rgba(61,43,51,.12);
+    display: flex; flex-direction: column;
+  }
+#v1 header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 20px 8px;
+  }
+#v1 .dog-avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, #f3c5a0, #e8a87c);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+#v1 .dog-name { font-weight: 600; font-size: 16px; }
+#v1 .dog-sub { font-size: 12px; color: #a08a91; }
+#v1 .settings-btn {
+    margin-left: auto; border: none; background: none;
+    font-size: 20px; color: #c9a9b2; cursor: pointer; padding: 6px;
+  }
+#v1 .ring-wrap { padding: 10px 20px 0; display: flex; flex-direction: column; align-items: center; }
+#v1 .ring {
+    position: relative; width: 240px; height: 240px;
+  }
+#v1 .ring svg { transform: rotate(-90deg); }
+#v1 .ring-center {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+  }
+#v1 .day-num { font-size: 44px; font-weight: 700; color: #d4586e; line-height: 1; }
+#v1 .day-label { font-size: 13px; color: #a08a91; }
+#v1 .phase-chip {
+    margin-top: 8px; font-size: 12px; font-weight: 600;
+    background: #fbe3e8; color: #c14b62; border-radius: 999px; padding: 4px 12px;
+  }
+#v1 .ring-forecast {
+    margin-top: 10px; font-size: 13px; color: #7a656d; text-align: center;
+  }
+#v1 .ring-forecast b { color: #3d2b33; }
+#v1 .calendar { padding: 18px 16px 8px; }
+#v1 .cal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 8px 10px;
+  }
+#v1 .cal-title { font-size: 15px; font-weight: 600; }
+#v1 .cal-nav { border: none; background: #f3ebe3; color: #7a656d; width: 30px; height: 30px;
+    border-radius: 50%; cursor: pointer; font-size: 14px; }
+#v1 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+#v1 .cal-dow { text-align: center; font-size: 10px; color: #b39aa2; padding: 6px 0; }
+#v1 .cal-day {
+    position: relative; aspect-ratio: 1; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; cursor: pointer; border: none; background: none;
+    font-family: inherit; color: inherit;
+  }
+#v1 .cal-day:hover { background: #f3ebe3; }
+#v1 .cal-day.dim { color: #d8c9ce; }
+#v1 .cal-day.heat { background: #f8d9df; color: #b23a52; font-weight: 600; }
+#v1 .cal-day.estrus { background: #e8a1b0; color: #fff; font-weight: 700; }
+#v1 .cal-day.today { box-shadow: inset 0 0 0 2px #d4586e; }
+#v1 .cal-day .dot {
+    position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+    width: 5px; height: 5px; border-radius: 50%; background: #d4586e;
+  }
+#v1 .cal-day.checked .dot { background: #7fae8f; }
+#v1 .legend {
+    display: flex; flex-wrap: wrap; gap: 10px 16px; padding: 8px 24px 12px;
+    font-size: 11px; color: #7a656d;
+  }
+#v1 .legend span { display: inline-flex; align-items: center; gap: 5px; }
+#v1 .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+#v1 .i-pro { background: #f8d9df; }
+#v1 .i-est { background: #e8a1b0; }
+#v1 .i-check { background: #7fae8f; border-radius: 50%; }
+#v1 .checkin-card {
+    margin: 6px 16px 16px; background: #fff; border-radius: 20px;
+    padding: 16px 18px; box-shadow: 0 4px 16px rgba(61,43,51,.06);
+  }
+#v1 .checkin-title { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+#v1 .checkin-title small { font-weight: 400; color: #a08a91; display: block; font-size: 12px; }
+#v1 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+#v1 .chip {
+    border: 1.5px solid #eadfe4; background: #fff; color: #7a656d;
+    border-radius: 999px; padding: 7px 14px; font-size: 13px; cursor: pointer;
+    font-family: inherit; transition: all .15s;
+  }
+#v1 .chip:hover { border-color: #e8a1b0; }
+#v1 .chip.on { background: #e8607a; border-color: #e8607a; color: #fff; }
+#v1 .save-btn {
+    margin-top: 14px; width: 100%; border: none; border-radius: 14px;
+    background: #e8607a; color: #fff; font-size: 15px; font-weight: 600;
+    padding: 13px; cursor: pointer; font-family: inherit;
+    opacity: .45; transition: opacity .2s;
+  }
+#v1 .save-btn.ready { opacity: 1; }
+#v1 .save-btn.ready:active { transform: scale(.98); }
+#v1 .saved-note { text-align: center; font-size: 12px; color: #7fae8f; padding-bottom: 20px; display: none; }
+
+
+  /* Вариант 2 · Лента */
+#v2, #v2 * { box-sizing: border-box; margin: 0; padding: 0; }
+#v2 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #2a2d34;
+    background: #0f1114;
+    line-height: 1.5;
+  }
+#v2 .phone {
+    max-width: 420px; margin: 0 auto; min-height: 100vh;
+    background: #14161a;
+    box-shadow: 0 0 40px rgba(0,0,0,.5);
+    display: flex; flex-direction: column;
+  }
+#v2 header {
+    position: sticky; top: 0; z-index: 5;
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px 10px;
+    background: linear-gradient(#14161a 80%, rgba(20,22,26,0));
+  }
+#v2 .dog-avatar {
+    width: 42px; height: 42px; border-radius: 26%;
+    background: #2b2f36; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; border: 1px solid #363b44;
+  }
+#v2 .dog-name { font-weight: 600; font-size: 16px; color: #eef0f3; }
+#v2 .dog-sub { font-size: 12px; color: #6f757f; }
+#v2 .icon-btn {
+    margin-left: auto; border: 1px solid #2b2f36; background: #1b1e23; color: #8b929d;
+    width: 34px; height: 34px; border-radius: 10px; cursor: pointer; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+  }
+#v2 .hero {
+    margin: 4px 16px 14px; padding: 18px;
+    background: linear-gradient(160deg, #241a1e, #1a161a);
+    border: 1px solid #3a262e; border-radius: 18px;
+  }
+#v2 .hero-top { display: flex; align-items: baseline; gap: 8px; }
+#v2 .hero-num { font-size: 40px; font-weight: 700; color: #ff7a8f; line-height: 1; }
+#v2 .hero-unit { font-size: 14px; color: #9aa0aa; }
+#v2 .hero-what { font-size: 14px; color: #d8dbe0; margin-top: 6px; }
+#v2 .hero-hint { font-size: 12.5px; color: #8a6b74; margin-top: 10px; line-height: 1.45; }
+#v2 .hero-hint b { color: #ffb3c0; font-weight: 600; }
+#v2 .bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 14px; }
+#v2 .bar i { display: block; }
+#v2 .b1 { background: #5c323c; flex: 4; }
+#v2 .b2 { background: #ff7a8f; flex: 3; }
+#v2 .b3 { background: #3a3f47; flex: 14; }
+#v2 .bar-labels { display: flex; justify-content: space-between; font-size: 10px; color: #6f757f; margin-top: 5px; }
+#v2 .alerts { margin: 0 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+#v2 .alert {
+    display: flex; gap: 10px; align-items: flex-start;
+    border-radius: 14px; padding: 12px 14px; font-size: 13.5px;
+  }
+#v2 .alert.ok { background: #18201b; border: 1px solid #2a3a2e; color: #a9c9b0; }
+#v2 .alert.warn { background: #1f1d16; border: 1px solid #3a3524; color: #d8c98a; }
+#v2 .alert-icon { font-size: 16px; line-height: 1.4; }
+#v2 .timeline { margin: 0 16px 8px; }
+#v2 .tl-title { font-size: 13px; font-weight: 600; color: #9aa0aa; text-transform: uppercase; letter-spacing: .5px; margin: 0 8px 6px; }
+#v2 .tl {
+    position: relative; padding-left: 26px;
+  }
+#v2 .tl::before {
+    content: ''; position: absolute; left: 8px; top: 6px; bottom: 6px;
+    width: 2px; background: #2b2f36;
+  }
+#v2 .tl-item { position: relative; padding: 8px; margin-bottom: 6px; border-radius: 14px; }
+#v2 .tl-item::before {
+    content: ''; position: absolute; left: -23px; top: 16px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #3a3f47; border: 2px solid #14161a;
+  }
+#v2 .tl-item.event::before { background: #ff7a8f; }
+#v2 .tl-item.checkin::before { background: #7fae8f; }
+#v2 .tl-item.today::before { box-shadow: 0 0 0 3px rgba(255,122,143,.25); }
+#v2 .tl-date { font-size: 11.5px; color: #6f757f; }
+#v2 .tl-text { font-size: 14px; color: #d8dbe0; }
+#v2 .tl-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+#v2 .tag {
+    font-size: 11px; padding: 3px 9px; border-radius: 999px;
+    background: #23262c; color: #9aa0aa; border: 1px solid #33373f;
+  }
+#v2 .tl-item.today .tl-text { color: #fff; font-weight: 500; }
+#v2 .fab-row {
+    position: sticky; bottom: 0; padding: 14px 16px 22px;
+    background: linear-gradient(rgba(20,22,26,0), #14161a 40%);
+    display: flex; gap: 10px;
+  }
+#v2 .btn {
+    flex: 1; border: none; border-radius: 14px; padding: 14px;
+    font-size: 14.5px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+#v2 .btn-ghost { background: #1f2228; color: #d8dbe0; border: 1px solid #33373f; }
+#v2 .btn-main { background: #ff7a8f; color: #23141a; }
+#v2 .btn-main:active { transform: scale(.98); }
+#v2 .btn-ghost:active { transform: scale(.98); }
+#v2 /* модалка чекина */
+  .modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,.55);
+    display: none; align-items: flex-end; justify-content: center; z-index: 10;
+  }
+#v2 .modal.open { display: flex; }
+#v2 .sheet {
+    background: #1b1e23; border-radius: 22px 22px 0 0;
+    width: 100%; max-width: 420px; padding: 20px 20px 28px;
+    border-top: 1px solid #33373f;
+  }
+#v2 .sheet-title { font-size: 16px; font-weight: 600; color: #eef0f3; margin-bottom: 2px; }
+#v2 .sheet-sub { font-size: 12.5px; color: #6f757f; margin-bottom: 14px; }
+#v2 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+#v2 .chip {
+    border: 1.5px solid #33373f; background: #23262c; color: #9aa0aa;
+    border-radius: 999px; padding: 8px 15px; font-size: 13.5px; cursor: pointer;
+    font-family: inherit; transition: all .15s;
+  }
+#v2 .chip.on { background: #ff7a8f; border-color: #ff7a8f; color: #23141a; }
+#v2 .sheet .btn-main { width: 100%; margin-top: 16px; opacity: .45; transition: opacity .2s; }
+#v2 .sheet .btn-main.ready { opacity: 1; }
+
+
+  /* Вариант 3 · Дневник */
+#v3, #v3 * { box-sizing: border-box; margin: 0; padding: 0; }
+#v3 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #402f2f;
+    background: #fdf8f3;
+    line-height: 1.5;
+  }
+#v3 .phone {
+    max-width: 420px; margin: 0 auto; min-height: 100vh;
+    background: #fdf8f3;
+    box-shadow: 0 0 40px rgba(64,47,47,.12);
+    display: flex; flex-direction: column;
+  }
+#v3 header {
+    display: flex; align-items: center; gap: 12px; padding: 16px 20px 4px;
+  }
+#v3 .dog-avatar {
+    width: 46px; height: 46px; border-radius: 50%;
+    background: linear-gradient(135deg, #fde2c8, #f5c9a4);
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+  }
+#v3 .dog-name { font-weight: 700; font-size: 17px; }
+#v3 .dog-sub { font-size: 12px; color: #b09083; }
+#v3 .header-actions { margin-left: auto; display: flex; gap: 8px; }
+#v3 .hbtn {
+    border: none; background: #f6ece2; color: #8a6f63; width: 34px; height: 34px;
+    border-radius: 50%; cursor: pointer; font-size: 15px;
+  }
+#v3 .tabs {
+    display: flex; gap: 4px; margin: 10px 16px 0;
+    background: #f1e6da; border-radius: 14px; padding: 4px;
+  }
+#v3 .tab {
+    flex: 1; border: none; background: none; border-radius: 11px;
+    padding: 9px 0; font-size: 13.5px; font-weight: 600; color: #a08375;
+    cursor: pointer; font-family: inherit; transition: all .15s;
+  }
+#v3 .tab.active { background: #fff; color: #c4545e; box-shadow: 0 2px 6px rgba(64,47,47,.08); }
+#v3 .pane { display: none; padding: 14px 16px 0; }
+#v3 .pane.active { display: block; }
+#v3 /* --- Сегодня --- */
+  .today-card {
+    background: #fff; border-radius: 22px; padding: 20px;
+    box-shadow: 0 4px 16px rgba(64,47,47,.07); text-align: center;
+    margin-bottom: 14px;
+  }
+#v3 .tc-day { font-size: 13px; color: #b09083; }
+#v3 .tc-big { font-size: 15px; font-weight: 600; color: #c4545e; margin: 6px 0 2px; }
+#v3 .tc-sub { font-size: 13.5px; color: #6b5348; }
+#v3 .tc-plan { font-size: 12.5px; color: #b09083; margin-top: 8px; }
+#v3 .circle {
+    width: 130px; height: 130px; margin: 14px auto;
+    border-radius: 50%;
+    background:
+      radial-gradient(closest-side, #fff 74%, transparent 75% 100%),
+      conic-gradient(#f6c6a0 0 8%, #f2836b 8% 14%, #f1e3d8 14% 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+#v3 .circle b { font-size: 34px; color: #c4545e; line-height: 1; }
+#v3 .circle span { font-size: 11px; color: #b09083; }
+#v3 .q-card {
+    background: #fff; border-radius: 20px; padding: 16px 18px;
+    box-shadow: 0 4px 16px rgba(64,47,47,.07); margin-bottom: 14px;
+  }
+#v3 .q-title { font-size: 14.5px; font-weight: 600; margin-bottom: 4px; }
+#v3 .q-sub { font-size: 12px; color: #b09083; margin-bottom: 12px; }
+#v3 .q-row { display: flex; gap: 8px; flex-wrap: wrap; }
+#v3 .q {
+    flex: 1; min-width: 100px; border: 1.5px solid #f0e2d5; background: #fffdfb;
+    border-radius: 14px; padding: 12px 10px; text-align: center;
+    font-size: 12.5px; color: #8a6f63; cursor: pointer; font-family: inherit;
+    transition: all .15s;
+  }
+#v3 .q:hover { border-color: #f5c9a4; }
+#v3 .q.on { background: #fdf0e4; border-color: #f2836b; color: #c4545e; font-weight: 600; }
+#v3 .q-next {
+    width: 100%; border: none; border-radius: 14px; padding: 13px;
+    background: #c4545e; color: #fff; font-size: 14.5px; font-weight: 600;
+    cursor: pointer; font-family: inherit; margin-top: 12px; opacity: .45; transition: opacity .2s;
+  }
+#v3 .q-next.ready { opacity: 1; }
+#v3 .q-next:active { transform: scale(.98); }
+#v3 /* --- Календарь --- */
+  .cal-card {
+    background: #fff; border-radius: 22px; padding: 16px;
+    box-shadow: 0 4px 16px rgba(64,47,47,.07); margin-bottom: 14px;
+  }
+#v3 .cal-head { display: flex; align-items: center; justify-content: space-between; padding: 0 6px 10px; }
+#v3 .cal-title { font-size: 15px; font-weight: 600; }
+#v3 .cal-nav { border: none; background: #f6ece2; color: #8a6f63; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; }
+#v3 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+#v3 .cal-dow { text-align: center; font-size: 10px; color: #c4a898; padding: 6px 0; }
+#v3 .cal-day {
+    position: relative; aspect-ratio: 1; border-radius: 11px; border: none; background: none;
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
+    cursor: pointer; font-family: inherit; color: inherit;
+  }
+#v3 .cal-day:hover { background: #f6ece2; }
+#v3 .cal-day.dim { color: #e3d4c9; }
+#v3 .cal-day.pro { background: #fbe4d2; }
+#v3 .cal-day.estr { background: #f2836b; color: #fff; font-weight: 700; }
+#v3 .cal-day.today { box-shadow: inset 0 0 0 2px #c4545e; }
+#v3 .cal-day .s { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background: #f2b8a2; }
+#v3 .cal-note { font-size: 12px; color: #b09083; text-align: center; padding-top: 10px; }
+#v3 /* --- История --- */
+  .hist-card {
+    background: #fff; border-radius: 20px; padding: 16px 18px;
+    box-shadow: 0 4px 16px rgba(64,47,47,.07); margin-bottom: 14px;
+  }
+#v3 .h-title { font-size: 14.5px; font-weight: 600; margin-bottom: 12px; }
+#v3 .h-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #f6ece2; font-size: 13.5px; }
+#v3 .h-row:last-of-type { border: none; }
+#v3 .h-k { color: #8a6f63; }
+#v3 .h-v { font-weight: 600; }
+#v3 .h-v.accent { color: #c4545e; }
+#v3 .h-bars { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+#v3 .h-bar { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #8a6f63; }
+#v3 .h-bar .track { flex: 1; height: 8px; background: #f6ece2; border-radius: 4px; overflow: hidden; }
+#v3 .h-bar .fill { height: 100%; background: linear-gradient(90deg, #f5c9a4, #f2836b); border-radius: 4px; }
+
+
+</style>
+</head>
+<body>
+<h1>Cavalla · выбери вариант</h1>
+<div class="sub">Потыкай все три — чипы и кнопки живые. Скажи Илье, какой больше нравится (или что взять из каждого).</div>
+<div class="vtabs">
+  <button class="vtab active" data-v="0">Вариант 1 · Кольцо</button>
+  <button class="vtab " data-v="1">Вариант 2 · Лента</button>
+  <button class="vtab " data-v="2">Вариант 3 · Дневник</button>
+</div>
+<div class="vwrap active" id="v1">
+<div class="phone">
+  <header>
+    <div class="dog-avatar">🐶</div>
+    <div>
+      <div class="dog-name">Дейзи</div>
+      <div class="dog-sub">джек-рассел · 2 года</div>
+    </div>
+    <button class="settings-btn">⚙</button>
+  </header>
+
+  <div class="ring-wrap">
+    <div class="ring">
+      <svg width="240" height="240" viewBox="0 0 240 240">
+        <circle cx="120" cy="120" r="100" fill="none" stroke="#f3ebe3" stroke-width="14"/>
+        <!-- цикл: проэструс+эструс 21% (5-й из 21 дня), прогноз следующей -->
+        <circle cx="120" cy="120" r="100" fill="none" stroke="#f8d9df" stroke-width="14"
+          stroke-dasharray="132 498" stroke-dashoffset="0"/>
+        <circle cx="120" cy="120" r="100" fill="none" stroke="#e8607a" stroke-width="14"
+          stroke-dasharray="30 599" stroke-dashoffset="-132"/>
+      </svg>
+      <div class="ring-center">
+        <div class="day-num">5</div>
+        <div class="day-label">день течки</div>
+        <div class="phase-chip">проэструс</div>
+      </div>
+    </div>
+    <div class="ring-forecast">
+      Охота ожидается <b>9–14 ноября</b> · следующая течка ~ <b>май 2027</b><br>
+      <small style="color:#b39aa2">прогноз ±7 дней — внесите ещё один цикл, чтобы уточнить</small>
+    </div>
+  </div>
+
+  <div class="calendar">
+    <div class="cal-head">
+      <button class="cal-nav">‹</button>
+      <div class="cal-title">Ноябрь 2026</div>
+      <button class="cal-nav">›</button>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-dow">пн</div><div class="cal-dow">вт</div><div class="cal-dow">ср</div>
+      <div class="cal-dow">чт</div><div class="cal-dow">пт</div><div class="cal-dow">сб</div><div class="cal-dow">вс</div>
+      <!-- ноябрь 2026: 1-е = воскресенье -->
+      <div class="cal-day dim"></div><div class="cal-day dim"></div><div class="cal-day dim"></div>
+      <div class="cal-day dim"></div><div class="cal-day dim"></div><div class="cal-day dim"></div>
+      <button class="cal-day" data-d="1">1</button>
+      <button class="cal-day" data-d="2">2</button><button class="cal-day" data-d="3">3</button><button class="cal-day" data-d="4">4</button>
+      <button class="cal-day heat today" data-d="5">5<span class="dot"></span></button>
+      <button class="cal-day heat" data-d="6">6</button><button class="cal-day heat" data-d="7">7</button>
+      <button class="cal-day heat" data-d="8">8</button><button class="cal-day estrus" data-d="9">9</button>
+      <button class="cal-day estrus" data-d="10">10</button><button class="cal-day estrus" data-d="11">11</button><button class="cal-day estrus" data-d="12">12</button>
+      <button class="cal-day estrus" data-d="13">13</button><button class="cal-day estrus" data-d="14">14</button>
+      <button class="cal-day heat" data-d="15">15</button><button class="cal-day heat" data-d="16">16</button>
+      <button class="cal-day heat" data-d="17">17</button><button class="cal-day heat" data-d="18">18</button>
+      <button class="cal-day heat" data-d="19">19</button><button class="cal-day heat" data-d="20">20</button><button class="cal-day heat" data-d="21">21</button>
+      <button class="cal-day" data-d="22">22</button><button class="cal-day" data-d="23">23</button><button class="cal-day" data-d="24">24</button>
+      <button class="cal-day" data-d="25">25</button><button class="cal-day" data-d="26">26</button><button class="cal-day" data-d="27">27</button>
+      <button class="cal-day" data-d="28">28</button><button class="cal-day" data-d="29">29</button><button class="cal-day" data-d="30">30</button>
+    </div>
+    <div class="legend">
+      <span><i class="i-pro"></i>проэструс</span>
+      <span><i class="i-est"></i>охота (эструс)</span>
+      <span><i class="i-check"></i>есть чекин</span>
+    </div>
+  </div>
+
+  <div class="checkin-card">
+    <div class="checkin-title">Как Дейзи сегодня? <small>10 секунд — и прогноз станет точнее</small></div>
+    <div class="chips">
+      <button class="chip">Петля увеличена</button>
+      <button class="chip">Выделения розовые</button>
+      <button class="chip">Выделения светлые</button>
+      <button class="chip">Ластится к кобелям</button>
+      <button class="chip">Отводит хвост</button>
+      <button class="chip">Беспокойная</button>
+      <button class="chip">Ест больше</button>
+    </div>
+    <button class="save-btn" id="save">Сохранить день</button>
+  </div>
+  <div class="saved-note" id="note">Готово — Дейзи отмечена на сегодня ✓</div>
+</div>
+
+</div>
+<div class="vwrap " id="v2">
+<div class="phone">
+  <header>
+    <div class="dog-avatar">🐶</div>
+    <div>
+      <div class="dog-name">Дейзи</div>
+      <div class="dog-sub">джек-рассел · 2 года</div>
+    </div>
+    <button class="icon-btn">⚙</button>
+  </header>
+
+  <div class="hero">
+    <div class="hero-top">
+      <div class="hero-num">5</div>
+      <div class="hero-unit">день течки</div>
+    </div>
+    <div class="hero-what">Проэструс — Дейзи пока не готова к вязке</div>
+    <div class="hero-hint">
+      Охота ожидается <b>9–14 ноября</b>. Начала отводить хвост или ластиться
+      к кобелям? Отмечай — прогноз сразу уточнится.
+    </div>
+    <div class="bar">
+      <i class="b1"></i><i class="b2"></i><i class="b3"></i>
+    </div>
+    <div class="bar-labels"><span>начало</span><span>охота</span><span>конец · до след. течки ~май 2027</span></div>
+  </div>
+
+  <div class="alerts">
+    <div class="alert ok">
+      <span class="alert-icon">✓</span>
+      <span>Прогноз ±7 дней. Станет точнее после второй записи о течке.</span>
+    </div>
+    <div class="alert warn">
+      <span class="alert-icon">🩺</span>
+      <span>Следи за выделениями: дольше 4 недель — повод показаться ветеринару.</span>
+    </div>
+  </div>
+
+  <div class="timeline">
+    <div class="tl-title">Хроника</div>
+    <div class="tl">
+      <div class="tl-item today checkin">
+        <div class="tl-date">сегодня, 3 ноября</div>
+        <div class="tl-text">Дейзи беспокойная, выделения тёмные</div>
+        <div class="tl-tags"><span class="tag">беспокойная</span><span class="tag">тёмные выделения</span></div>
+      </div>
+      <div class="tl-item event">
+        <div class="tl-date">29 октября</div>
+        <div class="tl-text">Началась течка № 4</div>
+      </div>
+      <div class="tl-item event">
+        <div class="tl-date">13 мая</div>
+        <div class="tl-text">Течка № 3 окончена · длилась 24 дня</div>
+      </div>
+      <div class="tl-item event">
+        <div class="tl-date">20 апреля</div>
+        <div class="tl-text">Началась течка № 3 · интервал 167 дней</div>
+      </div>
+      <div class="tl-item event">
+        <div class="tl-date">5 ноября 2025</div>
+        <div class="tl-text">Началась течка № 2</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fab-row">
+    <button class="btn btn-ghost" id="openCheckin">Чекин дня</button>
+    <button class="btn btn-main">Началась течка</button>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="sheet">
+      <div class="sheet-title">Как Дейзи сегодня?</div>
+      <div class="sheet-sub">Отмечай симптомы — прогноз точнее</div>
+      <div class="chips">
+        <button class="chip">Петля увеличена</button>
+        <button class="chip">Выделения розовые</button>
+        <button class="chip">Выделения светлые</button>
+        <button class="chip">Ластится к кобелям</button>
+        <button class="chip">Отводит хвост</button>
+        <button class="chip">Беспокойная</button>
+        <button class="chip">Ест больше</button>
+      </div>
+      <button class="btn btn-main" id="sheetSave">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+</div>
+<div class="vwrap " id="v3">
+<div class="phone">
+  <header>
+    <div class="dog-avatar">🐶</div>
+    <div>
+      <div class="dog-name">Дейзи</div>
+      <div class="dog-sub">джек-рассел · 2 года</div>
+    </div>
+    <div class="header-actions">
+      <button class="hbtn">🔔</button>
+      <button class="hbtn">⚙</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-p="p1">Сегодня</button>
+    <button class="tab" data-p="p2">Календарь</button>
+    <button class="tab" data-p="p3">История</button>
+  </div>
+
+  <!-- Сегодня -->
+  <div class="pane active" id="p1">
+    <div class="today-card">
+      <div class="tc-day">сегодня, 3 ноября</div>
+      <div class="circle"><b>5</b><span>день течки</span></div>
+      <div class="tc-big">Проэструс</div>
+      <div class="tc-sub">Дейзи пока не готова к вязке — петля отекает, выделения тёмные</div>
+      <div class="tc-plan">Охота ожидается 9–14 ноября · следующая течка ~ май 2027 (±7 дн.)</div>
+    </div>
+
+    <div class="q-card">
+      <div class="q-title">Как Дейзи сегодня?</div>
+      <div class="q-sub">Пара секунд — и прогноз станет точнее</div>
+      <div class="q-row">
+        <button class="q">Кровянистые<br>выделения</button>
+        <button class="q">Выделения<br>светлеют</button>
+        <button class="q">Петля<br>увеличена</button>
+        <button class="q">Ластится<br>к кобелям</button>
+        <button class="q">Отводит<br>хвост</button>
+        <button class="q">Кусает<br>поводок</button>
+        <button class="q">Больше<br>пьёт</button>
+        <button class="q">Много<br>спит</button>
+      </div>
+      <button class="q-next" id="save1">Записать день</button>
+    </div>
+  </div>
+
+  <!-- Календарь -->
+  <div class="pane" id="p2">
+    <div class="cal-card">
+      <div class="cal-head">
+        <button class="cal-nav">‹</button>
+        <div class="cal-title">Ноябрь 2026</div>
+        <button class="cal-nav">›</button>
+      </div>
+      <div class="cal-grid">
+        <div class="cal-dow">пн</div><div class="cal-dow">вт</div><div class="cal-dow">ср</div>
+        <div class="cal-dow">чт</div><div class="cal-dow">пт</div><div class="cal-dow">сб</div><div class="cal-dow">вс</div>
+        <div class="cal-day dim"></div><div class="cal-day dim"></div><div class="cal-day dim"></div>
+        <div class="cal-day dim"></div><div class="cal-day dim"></div><div class="cal-day dim"></div>
+        <button class="cal-day pro">1</button>
+        <button class="cal-day pro">2</button><button class="cal-day pro">3</button><button class="cal-day pro">4</button>
+        <button class="cal-day pro today">5</button>
+        <button class="cal-day pro">6</button><button class="cal-day pro">7</button>
+        <button class="cal-day pro">8</button><button class="cal-day estr">9</button>
+        <button class="cal-day estr">10</button><button class="cal-day estr">11</button>
+        <button class="cal-day estr">12</button><button class="cal-day estr">13</button>
+        <button class="cal-day estr">14</button><button class="cal-day pro">15</button><button class="cal-day pro">16</button>
+        <button class="cal-day pro">17</button><button class="cal-day pro">18</button><button class="cal-day pro">19</button>
+        <button class="cal-day pro">20</button><button class="cal-day pro">21</button><button class="cal-day pro">22</button>
+        <button class="cal-day pro">23</button><button class="cal-day pro">24</button><button class="cal-day pro">25</button>
+        <button class="cal-day pro">26</button><button class="cal-day pro">27</button><button class="cal-day pro">28</button>
+        <button class="cal-day pro">29</button><button class="cal-day pro">30</button>
+      </div>
+      <div class="cal-note">Розовые — проэструс · красные — охота (прогноз) · тапни по дню — заметка</div>
+    </div>
+  </div>
+
+  <!-- История -->
+  <div class="pane" id="p3">
+    <div class="hist-card">
+      <div class="h-title">Дейзи: сводка</div>
+      <div class="h-row"><span class="h-k">Записанных течек</span><span class="h-v">4</span></div>
+      <div class="h-row"><span class="h-k">Средний интервал</span><span class="h-v">163 дня · очень стабильно</span></div>
+      <div class="h-row"><span class="h-k">Средняя длительность</span><span class="h-v">22 дня</span></div>
+      <div class="h-row"><span class="h-k">Следующая течка</span><span class="h-v accent">~ 3–12 мая 2027</span></div>
+    </div>
+    <div class="hist-card">
+      <div class="h-title">Длины течек и интервалы</div>
+      <div class="h-bars">
+        <div class="h-bar"><span style="width:70px">апр–май 26</span><div class="track"><div class="fill" style="width:64%"></div></div><span>24 дня</span></div>
+        <div class="h-bar"><span style="width:70px">окт–ноя 26</span><div class="track"><div class="fill" style="width:58%"></div></div><span>идёт</span></div>
+      </div>
+      <div class="h-bar" style="margin-top:10px"><span style="width:70px">интервалы</span><div class="track"><div class="fill" style="width:80%"></div></div><span>165 · 167 дн.</span></div>
+    </div>
+  </div>
+
+  <div style="height:24px"></div>
+</div>
+
+</div>
+<script>
+  // Переключатель — ПЕРВЫМ: работает независимо от падения кода вариантов ниже.
+  // Причина: в вебвью Telegram падение в середине <script> убивало обработчики после него.
+  document.querySelectorAll(".vtab").forEach(t => t.addEventListener("click", () => {
+    document.querySelectorAll(".vtab").forEach(x => x.classList.toggle("active", x === t));
+    document.querySelectorAll(".vwrap").forEach(w => w.classList.toggle("active", +w.id.slice(1) - 1 === +t.dataset.v));
+    window.scrollTo({ top: 0 });
+  }));
+  const DOC1 = {
+    querySelector: s => document.querySelector('#v1 ' + s),
+    querySelectorAll: s => document.querySelectorAll('#v1 ' + s),
+    getElementById: id => document.querySelector('#v1 #' + id),
+  };
+  const DOC2 = {
+    querySelector: s => document.querySelector('#v2 ' + s),
+    querySelectorAll: s => document.querySelectorAll('#v2 ' + s),
+    getElementById: id => document.querySelector('#v2 #' + id),
+  };
+  const DOC3 = {
+    querySelector: s => document.querySelector('#v3 ' + s),
+    querySelectorAll: s => document.querySelectorAll('#v3 ' + s),
+    getElementById: id => document.querySelector('#v3 #' + id),
+  };
+(function() { try { const document = DOC1; const DOC = DOC1;
+
+  const chips = DOC1.querySelectorAll('.chip');
+  const save = DOC1.getElementById('save');
+  const note = DOC1.getElementById('note');
+  let dirty = false;
+  chips.forEach(c => c.addEventListener('click', () => {
+    c.classList.toggle('on');
+    dirty = [...chips].some(x => x.classList.contains('on'));
+    save.classList.toggle('ready', dirty);
+  }));
+  save.addEventListener('click', () => {
+    if (!save.classList.contains('ready')) return;
+    save.textContent = 'Сохранено';
+    note.style.display = 'block';
+    DOC1.querySelector('.cal-day.today').classList.add('checked');
+  });
+  DOC1.querySelectorAll('.cal-day[data-f]').forEach(d =>
+    d.addEventListener('click', () => alert('Прогноз: ' + d.dataset.f)));
+
+} catch(e) { console.error('v1', e); } })();
+(function() { try { const document = DOC2; const DOC = DOC2;
+
+  const modal = DOC2.getElementById('modal');
+  const save = DOC2.getElementById('sheetSave');
+  DOC2.getElementById('openCheckin').addEventListener('click', () => modal.classList.add('open'));
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+  const chips = modal.querySelectorAll('.chip');
+  chips.forEach(c => c.addEventListener('click', () => {
+    c.classList.toggle('on');
+    save.classList.toggle('ready', [...chips].some(x => x.classList.contains('on')));
+  }));
+  save.addEventListener('click', () => {
+    if (!save.classList.contains('ready')) return;
+    modal.classList.remove('open');
+  });
+
+} catch(e) { console.error('v2', e); } })();
+(function() { try { const document = DOC3; const DOC = DOC3;
+
+  DOC3.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    DOC3.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
+    DOC3.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.id === t.dataset.p));
+  }));
+  const save = DOC3.getElementById('save1');
+  const qs = DOC3.querySelectorAll('.q');
+  qs.forEach(q => q.addEventListener('click', () => {
+    q.classList.toggle('on');
+    save.classList.toggle('ready', [...qs].some(x => x.classList.contains('on')));
+  }));
+  save.addEventListener('click', () => {
+    if (!save.classList.contains('ready')) return;
+    save.textContent = 'Записано ✓';
+  });
+
+} catch(e) { console.error('v3', e); } })();
+</script>
+</body>
+</html>
